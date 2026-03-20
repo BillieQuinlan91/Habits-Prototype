@@ -97,6 +97,7 @@ The migration includes:
 - Notification preferences are stored now; actual reminder delivery is scaffolded for a later cron or edge-function pass.
 - The organization leaderboard only exposes aggregate tribe scores.
 - Brand voice guidance lives in [BRAND.md](/Users/markmcdermott/Code/foundrs-prototype/BRAND.md).
+- Visual design guidance lives in [VISUAL_IDENTITY.md](/Users/markmcdermott/Code/foundrs-prototype/VISUAL_IDENTITY.md) and [UI_COMPONENT_LIBRARY.md](/Users/markmcdermott/Code/foundrs-prototype/UI_COMPONENT_LIBRARY.md).
 - Feedback templates for screen-by-screen review are in [FEEDBACK.md](/Users/markmcdermott/Code/foundrs-prototype/FEEDBACK.md) and the in-app `/feedback` route.
 
 ## Deployment
