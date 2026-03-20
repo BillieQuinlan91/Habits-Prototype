@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Flame, MessageCircleHeart, Sparkles } from "lucide-react";
+import { Circle, MessageCircleHeart, Sparkles } from "lucide-react";
 
 import { MemberSheet } from "@/components/tribe/member-sheet";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Progress } from "@/components/ui/progress";
 import { OrganizationRanking, TribeLeaderboard } from "@/lib/types";
 
@@ -53,14 +54,18 @@ export function TribeScreen({
 
   return (
     <div className="space-y-5">
-      <Card className="space-y-4">
+      <Card className="space-y-5">
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Tribe</p>
-            <h2 className="font-display text-3xl font-semibold tracking-tight">{leaderboard.tribe.name}</h2>
+            <h2 className="font-display text-3xl font-normal tracking-tight">{leaderboard.tribe.name}</h2>
           </div>
           <Badge>{Math.round(leaderboard.tribeScore * 100)}% tribe score</Badge>
         </div>
+        <ConstellationWidget
+          activeCount={Math.max(1, Math.round(leaderboard.tribeScore * 7))}
+          totalCount={7}
+        />
         <p className="text-sm text-foreground/58">A thoughtful view of the week so far.</p>
         <div className="flex items-center gap-2 text-sm text-foreground/48">
           <Sparkles className="h-4 w-4 text-accent" />
@@ -74,15 +79,15 @@ export function TribeScreen({
             key={member.user_id}
             type="button"
             onClick={() => setSelectedUserId(member.user_id)}
-            className="w-full rounded-[28px] border border-border bg-card/90 p-4 text-left transition hover:border-foreground/20"
+            className="w-full rounded-2xl border border-border bg-card p-4 text-left transition hover:border-accent/30"
           >
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-2">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-foreground/40">#{index + 1}</span>
                   <p className="font-medium">{member.full_name}</p>
-                  <span className="inline-flex items-center gap-1 rounded-full bg-foreground/6 px-2 py-1 text-xs text-foreground/56">
-                    <Flame className="h-3 w-3" />
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface px-2 py-1 text-xs text-foreground/56">
+                    <Circle className="h-2.5 w-2.5 fill-success text-success" />
                     {member.streak}
                   </span>
                 </div>
@@ -108,9 +113,9 @@ export function TribeScreen({
       {rankings.length ? (
         <Card className="space-y-4">
           <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Organization</p>
-          <h3 className="font-display text-2xl font-semibold">Leaderboard</h3>
-        </div>
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Organization</p>
+            <h3 className="font-display text-2xl font-normal">Leaderboard</h3>
+          </div>
           <div className="space-y-3">
             {rankings.map((ranking) => (
               <div
@@ -134,7 +139,7 @@ export function TribeScreen({
       <Card className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Recent support</p>
-          <h3 className="font-display text-2xl font-semibold">Tribe energy</h3>
+          <h3 className="font-display text-2xl font-normal">Tribe energy</h3>
         </div>
         <div className="space-y-3">
           {activity.map((entry) => (

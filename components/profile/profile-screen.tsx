@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
@@ -234,7 +235,7 @@ export function ProfileScreen({
       <Card className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Profile</p>
-          <h2 className="font-display text-3xl font-semibold tracking-tight">
+          <h2 className="font-display text-3xl font-normal tracking-tight">
             {profile?.full_name ?? "Your profile"}
           </h2>
           <p className="mt-2 text-sm text-foreground/58">{profile?.email}</p>
@@ -243,6 +244,11 @@ export function ProfileScreen({
           {profile?.tribe?.name ? <Badge>{profile.tribe.name}</Badge> : null}
           {profile?.organization?.name ? <Badge>{profile.organization.name}</Badge> : null}
         </div>
+        <ConstellationWidget
+          activeCount={Math.min(habitItems.length + 2, 7)}
+          totalCount={7}
+          large
+        />
       </Card>
 
       <Card className="space-y-4">

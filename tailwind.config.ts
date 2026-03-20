@@ -23,7 +23,8 @@ const config: Config = {
         body: ["var(--font-body)", "sans-serif"],
       },
       boxShadow: {
-        premium: "0 24px 64px rgba(15, 23, 42, 0.12)",
+        premium: "0 18px 40px rgba(31, 41, 51, 0.08)",
+        soft: "0 6px 18px rgba(31, 41, 51, 0.05)",
       },
       animation: {
         float: "float 8s ease-in-out infinite",

@@ -16,8 +16,8 @@ export function ToggleChip({
       className={cn(
         "rounded-full border px-4 py-2 text-sm transition",
         selected
-          ? "border-accent bg-accent text-surface"
-          : "border-border bg-card text-foreground/70 hover:border-foreground/25",
+          ? "border-accent bg-accent/10 text-accent"
+          : "border-border bg-card text-foreground/70 hover:border-accent/35",
       )}
     >
       {label}

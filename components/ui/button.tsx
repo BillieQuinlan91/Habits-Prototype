@@ -14,13 +14,13 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
     <button
       ref={ref}
       className={cn(
-        "inline-flex h-12 items-center justify-center rounded-full px-5 text-sm font-semibold tracking-wide transition duration-200",
+        "inline-flex h-12 items-center justify-center rounded-xl px-4 text-[15px] font-medium transition duration-200",
         "disabled:cursor-not-allowed disabled:opacity-50",
         variant === "primary" &&
-          "bg-foreground text-surface shadow-premium hover:translate-y-[-1px]",
+          "bg-accent text-white shadow-soft hover:translate-y-[-1px] hover:bg-accent/95",
         variant === "secondary" &&
-          "border border-border bg-card/80 text-foreground hover:bg-card",
-        variant === "ghost" && "text-foreground/72 hover:text-foreground",
+          "border border-border bg-card text-foreground hover:bg-surface/70",
+        variant === "ghost" && "text-foreground/72 hover:bg-surface/70 hover:text-foreground",
         className,
       )}
       {...props}

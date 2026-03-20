@@ -5,6 +5,7 @@ import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
@@ -243,9 +244,10 @@ export function OnboardingFlow({
 
       {step === 0 ? (
         <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={2} totalCount={5} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 1</p>
-            <h2 className="font-display text-3xl font-semibold tracking-tight">Find your tribe</h2>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Find your tribe</h2>
             <p className="text-sm text-foreground/58">
               Start with the people who will notice if you disappear. Small groups tend to work rather well.
             </p>
@@ -352,9 +354,10 @@ export function OnboardingFlow({
 
       {step === 1 ? (
         <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={Math.max(1, selectedHabitCount)} totalCount={5} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
-            <h2 className="font-display text-3xl font-semibold tracking-tight">Choose 1 to 5 habits</h2>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Choose 1 to 5 habits</h2>
             <p className="text-sm text-foreground/58">
               Keep it modest. Pick the habits you would genuinely repeat.
             </p>
@@ -444,9 +447,10 @@ export function OnboardingFlow({
 
       {step === 2 ? (
         <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={Math.max(1, state.integrations.length || 1)} totalCount={5} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
-            <h2 className="font-display text-3xl font-semibold tracking-tight">Integrations coming soon</h2>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Integrations coming soon</h2>
             <p className="text-sm text-foreground/58">
               Tell us what you would like connected next. We&apos;re keeping notes.
             </p>

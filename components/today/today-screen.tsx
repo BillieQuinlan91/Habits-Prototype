@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { createClient } from "@/lib/supabase/client";
@@ -146,19 +147,22 @@ export function TodayScreen({
   return (
     <div className="space-y-5">
       <Card className="overflow-hidden">
-        <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-accent/10 blur-3xl" />
-        <div className="relative space-y-4">
-          <div className="flex items-start justify-between">
+        <div className="space-y-5">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
-              <h2 className="font-display text-3xl font-semibold tracking-tight">
+              <h2 className="font-display text-3xl font-normal tracking-tight">
                 {completed === items.length ? "The rhythm continues." : "A good place to continue."}
               </h2>
+              <p className="mt-2 max-w-[240px] text-sm text-foreground/58">
+                Small actions, repeated often, form a pattern soon enough.
+              </p>
             </div>
-            <span className="rounded-full bg-foreground/6 px-3 py-2 text-sm font-semibold">
+            <span className="rounded-full bg-surface px-3 py-2 text-sm font-medium text-foreground/72">
               {completed}/{items.length}
             </span>
           </div>
+          <ConstellationWidget activeCount={completed} totalCount={items.length || 1} />
           <Progress value={percentage} />
           <p className="text-sm text-foreground/58">
             {toPercent(percentage / 100)}% complete. Progress has been spotted.
@@ -176,10 +180,10 @@ export function TodayScreen({
         {items.map((habit) => (
           <div
             key={habit.id}
-            className={`group w-full rounded-[28px] border p-4 text-left transition ${
+            className={`group w-full rounded-2xl border p-4 text-left transition ${
               habit.log?.completed
-                ? "border-accent bg-accent/8 animate-pulseSoft"
-                : "border-border bg-card/90"
+                ? "border-success/60 bg-success/10 animate-pulseSoft"
+                : "border-border bg-card"
             }`}
           >
             <div className="flex items-start justify-between gap-3">
@@ -211,8 +215,8 @@ export function TodayScreen({
                 onClick={() => void toggleHabit(habit.id)}
                 className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${
                   habit.log?.completed
-                    ? "border-accent bg-accent text-surface"
-                    : "border-border bg-surface"
+                    ? "border-success bg-success text-white"
+                    : "border-border bg-white"
                 }`}
               >
                 <CheckCircle2 className="h-5 w-5" />
@@ -229,7 +233,7 @@ export function TodayScreen({
             <p className="text-xs uppercase tracking-[0.24em]">Sunday ritual</p>
           </div>
           <div>
-            <h3 className="font-display text-2xl font-semibold">See how your tribe is doing this week.</h3>
+            <h3 className="font-display text-2xl font-normal">See how your tribe is doing this week.</h3>
             <p className="mt-2 text-sm text-surface/72">
               A thoughtful week deserves a small social visit. Moving in {redirectCount}...
             </p>
