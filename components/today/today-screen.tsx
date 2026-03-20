@@ -162,7 +162,11 @@ export function TodayScreen({
               {completed}/{items.length}
             </span>
           </div>
-          <ConstellationWidget activeCount={completed} totalCount={items.length || 1} />
+          <ConstellationWidget
+            activeCount={completed}
+            totalCount={items.length || 1}
+            variant="today"
+          />
           <Progress value={percentage} />
           <p className="text-sm text-foreground/58">
             {toPercent(percentage / 100)}% complete. Progress has been spotted.

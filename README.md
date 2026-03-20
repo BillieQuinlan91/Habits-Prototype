@@ -98,6 +98,7 @@ The migration includes:
 - The organization leaderboard only exposes aggregate tribe scores.
 - Brand voice guidance lives in [BRAND.md](/Users/markmcdermott/Code/foundrs-prototype/BRAND.md).
 - Visual design guidance lives in [VISUAL_IDENTITY.md](/Users/markmcdermott/Code/foundrs-prototype/VISUAL_IDENTITY.md) and [UI_COMPONENT_LIBRARY.md](/Users/markmcdermott/Code/foundrs-prototype/UI_COMPONENT_LIBRARY.md).
+- Constellation behavior guidance lives in [CONSTELLATION_SYSTEM.md](/Users/markmcdermott/Code/foundrs-prototype/CONSTELLATION_SYSTEM.md).
 - Feedback templates for screen-by-screen review are in [FEEDBACK.md](/Users/markmcdermott/Code/foundrs-prototype/FEEDBACK.md) and the in-app `/feedback` route.
 
 ## Deployment

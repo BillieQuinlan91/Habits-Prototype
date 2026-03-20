@@ -248,6 +248,7 @@ export function ProfileScreen({
           activeCount={Math.min(habitItems.length + 2, 7)}
           totalCount={7}
           large
+          variant="profile"
         />
       </Card>
 

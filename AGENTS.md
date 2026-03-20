@@ -10,4 +10,5 @@
 
 - Always reference [VISUAL_IDENTITY.md](/Users/markmcdermott/Code/foundrs-prototype/VISUAL_IDENTITY.md) for visual direction and emotional design decisions.
 - Always reference [UI_COMPONENT_LIBRARY.md](/Users/markmcdermott/Code/foundrs-prototype/UI_COMPONENT_LIBRARY.md) for component styling, tokens, layout rules, and constellation-system implementation.
+- Always reference [CONSTELLATION_SYSTEM.md](/Users/markmcdermott/Code/foundrs-prototype/CONSTELLATION_SYSTEM.md) when working on progress visuals, habit completion animations, SVG layouts, weekly views, tribe identity markers, and profile hero visuals.
 - For MVP, prefer simple SVG constellation treatments over complex interactive visualisations.

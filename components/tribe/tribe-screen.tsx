@@ -65,6 +65,7 @@ export function TribeScreen({
         <ConstellationWidget
           activeCount={Math.max(1, Math.round(leaderboard.tribeScore * 7))}
           totalCount={7}
+          variant="weekly"
         />
         <p className="text-sm text-foreground/58">A thoughtful view of the week so far.</p>
         <div className="flex items-center gap-2 text-sm text-foreground/48">

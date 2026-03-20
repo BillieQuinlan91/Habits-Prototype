@@ -244,7 +244,7 @@ export function OnboardingFlow({
 
       {step === 0 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={2} totalCount={5} />
+          <ConstellationWidget activeCount={2} totalCount={5} variant="onboarding" />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 1</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Find your tribe</h2>
@@ -354,7 +354,11 @@ export function OnboardingFlow({
 
       {step === 1 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={Math.max(1, selectedHabitCount)} totalCount={5} />
+          <ConstellationWidget
+            activeCount={Math.max(1, selectedHabitCount)}
+            totalCount={5}
+            variant="onboarding"
+          />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Choose 1 to 5 habits</h2>
@@ -447,7 +451,11 @@ export function OnboardingFlow({
 
       {step === 2 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={Math.max(1, state.integrations.length || 1)} totalCount={5} />
+          <ConstellationWidget
+            activeCount={Math.max(1, state.integrations.length || 1)}
+            totalCount={5}
+            variant="onboarding"
+          />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Integrations coming soon</h2>
