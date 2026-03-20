@@ -70,7 +70,7 @@ export function ProfileScreen({
   async function saveHabit(habitId: string) {
     const draft = drafts[habitId];
     if (!draft?.name?.trim()) {
-      setError("Habit name is required.");
+      setError("A habit name is required.");
       return;
     }
 
@@ -135,6 +135,7 @@ export function ProfileScreen({
 
     if (nextHabits.length === 0) {
       setError("You need at least one habit.");
+      setSettingsSaved(null);
       return;
     }
 
@@ -249,6 +250,7 @@ export function ProfileScreen({
           <Users className="h-4 w-4 text-accent" />
           <p className="font-medium">Habits</p>
         </div>
+        <p className="text-sm text-foreground/58">Your routines are taking shape.</p>
         {error ? <p className="text-sm text-red-500">{error}</p> : null}
         <div className="space-y-3">
           {habitItems.map((habit) => {
@@ -389,7 +391,7 @@ export function ProfileScreen({
           <p className="font-medium">Integrations coming soon</p>
         </div>
         <p className="text-sm text-foreground/58">
-          Keep the excitement visible, but make the settings feel real. We&apos;ll save what you want next.
+          Tell us what you would like connected next. We&apos;ll keep a sensible record of it.
         </p>
         <div className="flex flex-wrap gap-2">
           {INTEGRATION_OPTIONS.map((option) => (
@@ -449,7 +451,7 @@ export function ProfileScreen({
               }
             />
           </label>
-          <p>Email reminder delivery is still a placeholder, but these preferences now behave like real settings.</p>
+          <p>Email delivery is still developing, but these preferences are now properly recorded.</p>
         </div>
         {settingsSaved ? <p className="text-sm text-accent">{settingsSaved}</p> : null}
         <Button type="button" onClick={() => void saveSettings()} disabled={isPending}>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
-import { CircleUserRound, House, Users } from "lucide-react";
+import { CircleUserRound, House, MessageSquareText, Users } from "lucide-react";
 
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,12 @@ export function AppShell({
   children,
   activeTab,
   isDemo = false,
+  showFeedbackLink = false,
 }: {
   children: ReactNode;
   activeTab: "today" | "tribe" | "profile";
   isDemo?: boolean;
+  showFeedbackLink?: boolean;
 }) {
   const tabs = [
     { href: "/today", label: "Today", icon: House, key: "today" },
@@ -25,15 +27,26 @@ export function AppShell({
       <header className="mb-6 flex items-center justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/38">
-            Small habits shape who you&apos;re becoming.
+            Quiet progress, repeated often.
           </p>
           <h1 className="font-display text-3xl font-semibold tracking-tight">{APP_NAME}</h1>
         </div>
-        {isDemo ? (
-          <span className="rounded-full bg-accent/12 px-3 py-1 text-xs font-semibold text-accent">
-            Demo mode
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          {showFeedbackLink ? (
+            <Link
+              href="/feedback"
+              className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-semibold text-foreground/70"
+            >
+              <MessageSquareText className="h-3.5 w-3.5" />
+              Feedback
+            </Link>
+          ) : null}
+          {isDemo ? (
+            <span className="rounded-full bg-accent/12 px-3 py-1 text-xs font-semibold text-accent">
+              Demo mode
+            </span>
+          ) : null}
+        </div>
       </header>
 
       <main className="flex-1">{children}</main>

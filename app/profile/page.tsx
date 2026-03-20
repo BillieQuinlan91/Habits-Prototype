@@ -12,7 +12,7 @@ export default async function ProfilePage() {
   }
 
   return (
-    <AppShell activeTab="profile" isDemo={bootstrap.isDemo}>
+    <AppShell activeTab="profile" isDemo={bootstrap.isDemo} showFeedbackLink>
       <ProfileScreen
         profile={bootstrap.profile}
         habits={bootstrap.habits}

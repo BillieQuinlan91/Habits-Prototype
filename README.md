@@ -96,6 +96,8 @@ The migration includes:
 - Measurable habits can still be marked complete even below target.
 - Notification preferences are stored now; actual reminder delivery is scaffolded for a later cron or edge-function pass.
 - The organization leaderboard only exposes aggregate tribe scores.
+- Brand voice guidance lives in [BRAND.md](/Users/markmcdermott/Code/foundrs-prototype/BRAND.md).
+- Feedback templates for screen-by-screen review are in [FEEDBACK.md](/Users/markmcdermott/Code/foundrs-prototype/FEEDBACK.md) and the in-app `/feedback` route.
 
 ## Deployment
 

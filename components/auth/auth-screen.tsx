@@ -55,12 +55,12 @@ export function AuthScreen() {
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-[0.26em] text-foreground/38">Becoming</p>
             <h1 className="font-display text-5xl font-semibold leading-none tracking-tight">
-              Small habits.
+              Quiet progress.
               <br />
-              Stronger founders.
+              Daily, if possible.
             </h1>
             <p className="max-w-sm text-sm leading-6 text-foreground/62">
-              Track the habits that matter, then show up for your tribe every Sunday.
+              Small actions, repeated often, shape a life. The rest is mostly repetition.
             </p>
           </div>
         </div>
@@ -72,8 +72,8 @@ export function AuthScreen() {
             </p>
             <p className="mt-1 text-sm text-foreground/55">
               {isDemoMode
-                ? "Auth is intentionally bypassed in this build so user tests focus on the product loop."
-                : "Clean entry. No passwords. Just your email."}
+                ? "Auth is politely out of the way so testing can focus on the product loop."
+                : "A sensible place to begin. No password required."}
             </p>
           </div>
 
@@ -86,7 +86,7 @@ export function AuthScreen() {
                 </Button>
               </Link>
               <div className="rounded-3xl border border-dashed border-border p-4 text-sm text-foreground/55">
-                Test the core loop: join a tribe, pick habits, log today, support your tribe, then edit your setup in Profile.
+                Join a tribe, choose a few habits, log today, then offer a little encouragement.
               </div>
             </>
           ) : (
@@ -107,20 +107,20 @@ export function AuthScreen() {
 
           <p className="text-sm text-foreground/55">
             {status === "success" && isConfigured
-              ? "Check your inbox for the sign-in link."
+              ? "Check your inbox. A link should be waiting."
               : status === "success" && isDemoMode
-                ? "Testing build ready. Head into Today."
+                ? "The testing build is ready. Today is waiting."
                 : status === "error"
-                  ? "Something went wrong. Verify your Supabase configuration and try again."
+                  ? "Something went wrong. Perfectly fixable. Try again."
                   : isDemoMode
-                    ? "Use this build to test the flow, not the auth layer."
-                    : "Integrations and reminders are coming soon."}
+                    ? "Use this build to review the flow, not the auth layer."
+                    : "Reminders and integrations are developing quietly."}
           </p>
         </Card>
       </div>
 
       <p className="text-xs leading-5 text-foreground/38">
-        Monochrome focus. Rotating energy. Built for founder accountability groups.
+        A calm companion for repeatable effort.
       </p>
     </div>
   );

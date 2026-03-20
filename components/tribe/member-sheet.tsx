@@ -36,7 +36,7 @@ export function MemberSheet({
       <Card className="w-full animate-rise rounded-[32px]">
         <div className="space-y-5">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Support a member</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Encouragement</p>
             <h3 className="font-display text-2xl font-semibold">{member.full_name}</h3>
             <p className="mt-2 text-sm text-foreground/58">
               {Math.round(member.percentage * 100)}% this week · {member.streak} day streak
@@ -44,7 +44,7 @@ export function MemberSheet({
           </div>
 
           <div className="rounded-3xl bg-foreground/4 p-4 text-sm text-foreground/58">
-            {member.latestComment ?? "A quick note or reaction is enough. Keep it warm and low-friction."}
+            {member.latestComment ?? "A brief note or reaction will do nicely."}
           </div>
 
           <div className="flex gap-2">
@@ -63,7 +63,7 @@ export function MemberSheet({
           </div>
 
           <Input
-            placeholder="Optional note"
+            placeholder="A short note, if you like"
             value={message}
             onChange={(event) => setMessage(event.target.value)}
           />
@@ -71,7 +71,7 @@ export function MemberSheet({
           {sent ? (
             <div className="flex items-center gap-2 rounded-2xl bg-accent/8 px-4 py-3 text-sm text-accent">
               <MessageCircleMore className="h-4 w-4" />
-              Encouragement sent.
+              Encouragement sent. Quietly impressive.
             </div>
           ) : null}
 

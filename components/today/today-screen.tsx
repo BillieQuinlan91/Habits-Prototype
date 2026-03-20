@@ -152,7 +152,7 @@ export function TodayScreen({
             <div>
               <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
               <h2 className="font-display text-3xl font-semibold tracking-tight">
-                {completed === items.length ? "Day locked in." : "Build the day."}
+                {completed === items.length ? "The rhythm continues." : "A good place to continue."}
               </h2>
             </div>
             <span className="rounded-full bg-foreground/6 px-3 py-2 text-sm font-semibold">
@@ -161,7 +161,7 @@ export function TodayScreen({
           </div>
           <Progress value={percentage} />
           <p className="text-sm text-foreground/58">
-            {toPercent(percentage / 100)}% complete. Fast logs now. Momentum later.
+            {toPercent(percentage / 100)}% complete. Progress has been spotted.
           </p>
         </div>
       </Card>
@@ -198,7 +198,7 @@ export function TodayScreen({
                       value={habit.log?.progress_value ?? ""}
                       onChange={(event) => void updateProgress(habit.id, event.target.value)}
                       className="h-10 max-w-[120px]"
-                      placeholder="Log"
+                      placeholder="Amount"
                     />
                     <span className="text-xs uppercase tracking-[0.18em] text-foreground/38">
                       {habit.target_unit}
@@ -231,7 +231,7 @@ export function TodayScreen({
           <div>
             <h3 className="font-display text-2xl font-semibold">See how your tribe is doing this week.</h3>
             <p className="mt-2 text-sm text-surface/72">
-              You&apos;re done here. We&apos;re taking you into the tribe ritual in {redirectCount}...
+              A thoughtful week deserves a small social visit. Moving in {redirectCount}...
             </p>
           </div>
           <Button
@@ -249,7 +249,7 @@ export function TodayScreen({
 
       {isDemo ? (
         <p className="text-center text-xs text-foreground/40">
-          Demo mode previews the interaction design. Connect Supabase to persist logs.
+          Demo mode previews the flow. Persistence can arrive later.
         </p>
       ) : null}
     </div>

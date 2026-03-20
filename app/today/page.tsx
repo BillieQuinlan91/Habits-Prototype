@@ -16,7 +16,7 @@ export default async function TodayPage() {
   }
 
   return (
-    <AppShell activeTab="today" isDemo={bootstrap.isDemo}>
+    <AppShell activeTab="today" isDemo={bootstrap.isDemo} showFeedbackLink>
       <TodayScreen habits={bootstrap.habits} isDemo={bootstrap.isDemo} />
     </AppShell>
   );

@@ -12,7 +12,7 @@ export default async function TribePage() {
   }
 
   return (
-    <AppShell activeTab="tribe" isDemo={bootstrap.isDemo}>
+    <AppShell activeTab="tribe" isDemo={bootstrap.isDemo} showFeedbackLink>
       <TribeScreen
         leaderboard={bootstrap.leaderboard}
         rankings={bootstrap.organizationRankings}

@@ -16,7 +16,7 @@ export default async function OnboardingPage() {
   }
 
   return (
-    <AppShell activeTab="today" isDemo={bootstrap.isDemo}>
+    <AppShell activeTab="today" isDemo={bootstrap.isDemo} showFeedbackLink>
       <OnboardingFlow
         tribes={bootstrap.tribes}
         templates={bootstrap.templates}

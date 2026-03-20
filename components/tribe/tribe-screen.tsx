@@ -18,7 +18,7 @@ export function TribeScreen({
 }) {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [activity, setActivity] = useState<Array<{ id: string; text: string }>>([
-    { id: "a1", text: "Ariana got a 🎉 after a strong week." },
+    { id: "a1", text: "Ariana received a 🎉 for a respectable week." },
     { id: "a2", text: "Jay picked up a 💪 from the tribe." },
   ]);
   const selectedMember = leaderboard?.members.find((member) => member.user_id === selectedUserId) ?? null;
@@ -34,8 +34,8 @@ export function TribeScreen({
 
     const member = leaderboard.members.find((entry) => entry.user_id === payload.userId);
     const description = payload.message
-      ? `You sent ${member?.full_name ?? "a member"}: "${payload.message}".`
-      : `You sent ${member?.full_name ?? "a member"} ${payload.reaction ?? "support"}.`;
+      ? `You sent ${member?.full_name ?? "a member"} a note: "${payload.message}".`
+      : `You sent ${member?.full_name ?? "a member"} ${payload.reaction ?? "a little support"}.`;
 
     setActivity((current) => [
       { id: `${payload.userId}-${current.length + 1}`, text: description },
@@ -46,7 +46,7 @@ export function TribeScreen({
   if (!leaderboard) {
     return (
       <Card>
-        <p className="font-medium">Join a tribe to unlock weekly accountability.</p>
+        <p className="font-medium">Join a tribe and the weekly rhythm appears here.</p>
       </Card>
     );
   }
@@ -61,10 +61,10 @@ export function TribeScreen({
           </div>
           <Badge>{Math.round(leaderboard.tribeScore * 100)}% tribe score</Badge>
         </div>
-        <p className="text-sm text-foreground/58">See how your tribe is doing this week.</p>
+        <p className="text-sm text-foreground/58">A thoughtful view of the week so far.</p>
         <div className="flex items-center gap-2 text-sm text-foreground/48">
           <Sparkles className="h-4 w-4 text-accent" />
-          {socialEnergy} signals of support this week
+          {socialEnergy} small signals of support this week
         </div>
       </Card>
 
@@ -95,7 +95,7 @@ export function TribeScreen({
                     </span>
                   ) : null}
                   {member.encouragementNeeded ? (
-                    <span className="rounded-full bg-accent/10 px-2 py-1 text-accent">💪 encourage</span>
+                    <span className="rounded-full bg-accent/10 px-2 py-1 text-accent">💪 offer support</span>
                   ) : null}
                 </div>
               </div>
@@ -108,9 +108,9 @@ export function TribeScreen({
       {rankings.length ? (
         <Card className="space-y-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Organization</p>
-            <h3 className="font-display text-2xl font-semibold">Leaderboard</h3>
-          </div>
+          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Organization</p>
+          <h3 className="font-display text-2xl font-semibold">Leaderboard</h3>
+        </div>
           <div className="space-y-3">
             {rankings.map((ranking) => (
               <div

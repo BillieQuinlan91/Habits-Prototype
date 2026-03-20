@@ -124,7 +124,7 @@ export function OnboardingFlow({
       } = await supabase.auth.getUser();
 
       if (!user) {
-        throw new Error("You need to be signed in.");
+        throw new Error("You need to sign in first.");
       }
 
       const selectedOrganization =
@@ -220,7 +220,7 @@ export function OnboardingFlow({
 
       window.location.href = "/today";
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : "Unable to finish onboarding.";
+      const message = saveError instanceof Error ? saveError.message : "Something went wrong. Perfectly fixable. Try again.";
       setError(message);
     } finally {
       setSaving(false);
@@ -247,7 +247,7 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 1</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight">Find your tribe</h2>
             <p className="text-sm text-foreground/58">
-              Start with the people who will notice if you disappear. Small tribe. Real accountability.
+              Start with the people who will notice if you disappear. Small groups tend to work rather well.
             </p>
           </div>
 
@@ -305,7 +305,7 @@ export function OnboardingFlow({
                 ))}
                 {!filteredTribes.length ? (
                   <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-foreground/50">
-                    No tribe found. Create a new one below.
+                    Nothing suitable yet. A new tribe is a perfectly respectable option.
                   </div>
                 ) : null}
               </div>
@@ -356,14 +356,14 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight">Choose 1 to 5 habits</h2>
             <p className="text-sm text-foreground/58">
-              Keep it lean. Pick only the habits you want to see every single day.
+              Keep it modest. Pick the habits you would genuinely repeat.
             </p>
           </div>
 
           <Card className="rounded-3xl bg-accent/6">
             <p className="font-medium">What happens next</p>
             <p className="mt-2 text-sm text-foreground/58">
-              You&apos;ll land on Today and be ready to log fast. On Sunday, we&apos;ll pull you straight into your tribe ritual.
+              You&apos;ll land on Today, log a few things, and on Sunday we&apos;ll guide you into the tribe ritual.
             </p>
           </Card>
 
@@ -448,7 +448,7 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight">Integrations coming soon</h2>
             <p className="text-sm text-foreground/58">
-              Tell us what you want connected next. This helps us prioritize the integrations that make daily logging disappear.
+              Tell us what you would like connected next. We&apos;re keeping notes.
             </p>
           </div>
 
@@ -466,7 +466,7 @@ export function OnboardingFlow({
           <Card className="rounded-3xl bg-accent/6">
             <p className="font-medium">What happens next</p>
             <p className="mt-2 text-sm text-foreground/58">
-              You’ll land on Today, log fast, and on Sunday we’ll guide you into the tribe ritual.
+              You&apos;ll land on Today. The routine can begin there.
             </p>
           </Card>
 
