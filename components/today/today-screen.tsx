@@ -1,11 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { createClient } from "@/lib/supabase/client";
+import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { TodayHabitItem } from "@/lib/types";
 import { isSundayLocal, toPercent } from "@/lib/utils";
 
@@ -16,34 +20,127 @@ export function TodayScreen({
   habits: TodayHabitItem[];
   isDemo?: boolean;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState(habits);
   const [showSundayPush, setShowSundayPush] = useState(false);
+  const [redirectCount, setRedirectCount] = useState(3);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   const completed = items.filter((item) => item.log?.completed).length;
   const percentage = useMemo(() => (items.length ? (completed / items.length) * 100 : 0), [completed, items.length]);
 
-  function toggleHabit(habitId: string) {
+  useEffect(() => {
+    if (!showSundayPush) {
+      return;
+    }
+
+    if (redirectCount <= 0) {
+      router.push("/tribe");
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setRedirectCount((current) => current - 1);
+    }, 1000);
+
+    return () => window.clearTimeout(timeout);
+  }, [redirectCount, router, showSundayPush]);
+
+  function buildNextLog(habit: TodayHabitItem, nextCompleted: boolean, nextProgressValue: number | null) {
+    return {
+      id: habit.log?.id ?? `temp-${habit.id}`,
+      user_id: habit.user_id,
+      user_habit_id: habit.id,
+      log_date: new Date().toISOString().slice(0, 10),
+      completed: nextCompleted,
+      progress_value: nextProgressValue,
+      notes: null,
+    };
+  }
+
+  async function persistLog(habit: TodayHabitItem, completedValue: boolean, progressValue: number | null) {
+    if (isDemo || !hasSupabaseEnv()) {
+      return;
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase.from("habit_logs").upsert({
+      id: habit.log?.id,
+      user_id: habit.user_id,
+      user_habit_id: habit.id,
+      log_date: new Date().toISOString().slice(0, 10),
+      completed: completedValue,
+      progress_value: progressValue,
+    });
+
+    if (error) {
+      setFeedback(error.message);
+      return;
+    }
+
+    router.refresh();
+  }
+
+  function finishSundayIfNeeded(nextItems: TodayHabitItem[]) {
+    if (isSundayLocal() && nextItems.every((habit) => habit.log?.completed)) {
+      setRedirectCount(3);
+      setShowSundayPush(true);
+    }
+  }
+
+  async function toggleHabit(habitId: string) {
+    const currentHabit = items.find((habit) => habit.id === habitId);
+    if (!currentHabit) {
+      return;
+    }
+
+    const nextCompleted = !(currentHabit.log?.completed ?? false);
+    const nextProgressValue =
+      currentHabit.type === "measurable"
+        ? currentHabit.log?.progress_value ?? currentHabit.target_value ?? null
+        : currentHabit.log?.progress_value ?? null;
+
     const next = items.map((habit) =>
       habit.id === habitId
         ? {
             ...habit,
-            log: {
-              id: habit.log?.id ?? `temp-${habitId}`,
-              user_id: habit.user_id,
-              user_habit_id: habit.id,
-              log_date: new Date().toISOString().slice(0, 10),
-              completed: !(habit.log?.completed ?? false),
-              progress_value: habit.log?.progress_value ?? habit.target_value ?? null,
-              notes: null,
-            },
+            log: buildNextLog(habit, nextCompleted, nextProgressValue),
           }
         : habit,
     );
 
+    setFeedback(null);
     setItems(next);
-    if (isSundayLocal() && next.every((habit) => habit.log?.completed)) {
-      setShowSundayPush(true);
+    finishSundayIfNeeded(next);
+    await persistLog(currentHabit, nextCompleted, nextProgressValue);
+  }
+
+  async function updateProgress(habitId: string, rawValue: string) {
+    const currentHabit = items.find((habit) => habit.id === habitId);
+    if (!currentHabit) {
+      return;
     }
+
+    const nextProgressValue = rawValue === "" ? null : Number(rawValue);
+    const targetReached =
+      currentHabit.target_value !== null &&
+      nextProgressValue !== null &&
+      nextProgressValue >= currentHabit.target_value;
+    const nextCompleted = currentHabit.log?.completed ?? targetReached;
+
+    const next = items.map((habit) =>
+      habit.id === habitId
+        ? {
+            ...habit,
+            log: buildNextLog(habit, nextCompleted, nextProgressValue),
+          }
+        : habit,
+    );
+
+    setFeedback(null);
+    setItems(next);
+    finishSundayIfNeeded(next);
+    await persistLog(currentHabit, nextCompleted, nextProgressValue);
   }
 
   return (
@@ -69,28 +166,49 @@ export function TodayScreen({
         </div>
       </Card>
 
+      {feedback ? (
+        <p className="rounded-2xl border border-border bg-card/80 px-4 py-3 text-sm text-foreground/62">
+          {feedback}
+        </p>
+      ) : null}
+
       <div className="space-y-3">
         {items.map((habit) => (
-          <button
+          <div
             key={habit.id}
-            type="button"
-            onClick={() => toggleHabit(habit.id)}
             className={`group w-full rounded-[28px] border p-4 text-left transition ${
               habit.log?.completed
                 ? "border-accent bg-accent/8 animate-pulseSoft"
                 : "border-border bg-card/90"
             }`}
           >
-            <div className="flex items-center justify-between gap-3">
-              <div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
                 <p className="font-medium">{habit.name}</p>
                 <p className="mt-1 text-sm text-foreground/48">
                   {habit.type === "measurable"
                     ? `${habit.log?.progress_value ?? 0} / ${habit.target_value ?? 0} ${habit.target_unit ?? ""}`
                     : "Done / not done"}
                 </p>
+                {habit.type === "measurable" ? (
+                  <div className="mt-3 flex items-center gap-2">
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      value={habit.log?.progress_value ?? ""}
+                      onChange={(event) => void updateProgress(habit.id, event.target.value)}
+                      className="h-10 max-w-[120px]"
+                      placeholder="Log"
+                    />
+                    <span className="text-xs uppercase tracking-[0.18em] text-foreground/38">
+                      {habit.target_unit}
+                    </span>
+                  </div>
+                ) : null}
               </div>
-              <span
+              <button
+                type="button"
+                onClick={() => void toggleHabit(habit.id)}
                 className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${
                   habit.log?.completed
                     ? "border-accent bg-accent text-surface"
@@ -98,9 +216,9 @@ export function TodayScreen({
                 }`}
               >
                 <CheckCircle2 className="h-5 w-5" />
-              </span>
+              </button>
             </div>
-          </button>
+          </div>
         ))}
       </div>
 
@@ -113,17 +231,17 @@ export function TodayScreen({
           <div>
             <h3 className="font-display text-2xl font-semibold">See how your tribe is doing this week.</h3>
             <p className="mt-2 text-sm text-surface/72">
-              Your tribe could use your encouragement.
+              You&apos;re done here. We&apos;re taking you into the tribe ritual in {redirectCount}...
             </p>
           </div>
           <Button
             variant="secondary"
             className="w-full border-surface/20 bg-surface text-foreground"
             onClick={() => {
-              window.location.href = "/tribe";
+              router.push("/tribe");
             }}
           >
-            Go to Tribe
+            Go now
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
         </Card>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -51,6 +51,10 @@ export function OnboardingFlow({
 
   function nextStep() {
     setStep((current) => Math.min(current + 1, 2));
+  }
+
+  function previousStep() {
+    setStep((current) => Math.max(current - 1, 0));
   }
 
   function addTemplate(templateId: string) {
@@ -243,7 +247,7 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 1</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight">Find your tribe</h2>
             <p className="text-sm text-foreground/58">
-              Join an existing tribe or start a new one. Keep it tight. Maximum 8 members.
+              Start with the people who will notice if you disappear. Small tribe. Real accountability.
             </p>
           </div>
 
@@ -352,9 +356,16 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight">Choose 1 to 5 habits</h2>
             <p className="text-sm text-foreground/58">
-              Start lean. Daily habits only for the MVP. Manual logging keeps the loop fast.
+              Keep it lean. Pick only the habits you want to see every single day.
             </p>
           </div>
+
+          <Card className="rounded-3xl bg-accent/6">
+            <p className="font-medium">What happens next</p>
+            <p className="mt-2 text-sm text-foreground/58">
+              You&apos;ll land on Today and be ready to log fast. On Sunday, we&apos;ll pull you straight into your tribe ritual.
+            </p>
+          </Card>
 
           <div className="grid gap-2">
             {templates.map((template) => {
@@ -419,9 +430,15 @@ export function OnboardingFlow({
             </div>
           ) : null}
 
-          <Button className="w-full" onClick={nextStep} disabled={selectedHabitCount < 1 || selectedHabitCount > 5}>
-            Continue
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={previousStep}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button className="flex-1" onClick={nextStep} disabled={selectedHabitCount < 1 || selectedHabitCount > 5}>
+              Continue
+            </Button>
+          </div>
         </Card>
       ) : null}
 
@@ -431,7 +448,7 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
             <h2 className="font-display text-3xl font-semibold tracking-tight">Integrations coming soon</h2>
             <p className="text-sm text-foreground/58">
-              Tell us what you want connected next. We’ll save this for product research.
+              Tell us what you want connected next. This helps us prioritize the integrations that make daily logging disappear.
             </p>
           </div>
 
@@ -454,13 +471,19 @@ export function OnboardingFlow({
           </Card>
 
           {error ? <p className="text-sm text-red-500">{error}</p> : null}
-          <Button
-            className="w-full"
-            onClick={finishOnboarding}
-            disabled={saving || selectedHabitCount < 1 || selectedHabitCount > 5}
-          >
-            {saving ? "Saving..." : "Finish onboarding"}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={previousStep}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={finishOnboarding}
+              disabled={saving || selectedHabitCount < 1 || selectedHabitCount > 5}
+            >
+              {saving ? "Saving..." : "Finish onboarding"}
+            </Button>
+          </div>
         </Card>
       ) : null}
     </div>

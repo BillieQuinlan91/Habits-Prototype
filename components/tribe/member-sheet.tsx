@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MessageCircleMore } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -10,13 +11,25 @@ import { WeeklyMemberScore } from "@/lib/types";
 
 export function MemberSheet({
   member,
+  onSend,
   onClose,
 }: {
   member: WeeklyMemberScore;
+  onSend: (payload: { userId: string; reaction: string | null; message: string }) => void;
   onClose: () => void;
 }) {
   const [selectedReaction, setSelectedReaction] = useState<string | null>(null);
   const [message, setMessage] = useState("");
+  const [sent, setSent] = useState(false);
+
+  function handleSend() {
+    onSend({
+      userId: member.user_id,
+      reaction: selectedReaction,
+      message: message.trim(),
+    });
+    setSent(true);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end bg-black/30 p-4">
@@ -28,6 +41,10 @@ export function MemberSheet({
             <p className="mt-2 text-sm text-foreground/58">
               {Math.round(member.percentage * 100)}% this week · {member.streak} day streak
             </p>
+          </div>
+
+          <div className="rounded-3xl bg-foreground/4 p-4 text-sm text-foreground/58">
+            {member.latestComment ?? "A quick note or reaction is enough. Keep it warm and low-friction."}
           </div>
 
           <div className="flex gap-2">
@@ -51,11 +68,20 @@ export function MemberSheet({
             onChange={(event) => setMessage(event.target.value)}
           />
 
+          {sent ? (
+            <div className="flex items-center gap-2 rounded-2xl bg-accent/8 px-4 py-3 text-sm text-accent">
+              <MessageCircleMore className="h-4 w-4" />
+              Encouragement sent.
+            </div>
+          ) : null}
+
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={onClose}>
               Close
             </Button>
-            <Button className="flex-1">Send</Button>
+            <Button className="flex-1" onClick={handleSend}>
+              Send
+            </Button>
           </div>
         </div>
       </Card>

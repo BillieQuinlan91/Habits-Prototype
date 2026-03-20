@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 
@@ -7,12 +8,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
-import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { hasSupabaseEnv, isForcedDemoMode } from "@/lib/supabase/env";
 
 export function AuthScreen() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const isConfigured = useMemo(() => hasSupabaseEnv(), []);
+  const isDemoMode = useMemo(() => isForcedDemoMode() || !isConfigured, [isConfigured]);
 
   async function handleMagicLink() {
     if (!isConfigured) {
@@ -65,32 +67,54 @@ export function AuthScreen() {
 
         <Card className="space-y-4">
           <div>
-            <p className="font-display text-xl font-semibold">Sign in with magic link</p>
+            <p className="font-display text-xl font-semibold">
+              {isDemoMode ? "Explore the testing build" : "Sign in with magic link"}
+            </p>
             <p className="mt-1 text-sm text-foreground/55">
-              Clean entry. No passwords. Just your email.
+              {isDemoMode
+                ? "Auth is intentionally bypassed in this build so user tests focus on the product loop."
+                : "Clean entry. No passwords. Just your email."}
             </p>
           </div>
 
-          <Input
-            type="email"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-          />
+          {isDemoMode ? (
+            <>
+              <Link href="/today" className="block">
+                <Button className="w-full">
+                  Start demo walkthrough
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <div className="rounded-3xl border border-dashed border-border p-4 text-sm text-foreground/55">
+                Test the core loop: join a tribe, pick habits, log today, support your tribe, then edit your setup in Profile.
+              </div>
+            </>
+          ) : (
+            <>
+              <Input
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
 
-          <Button onClick={handleMagicLink} disabled={!email || status === "loading"} className="w-full">
-            {status === "loading" ? "Sending..." : "Send magic link"}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
+              <Button onClick={handleMagicLink} disabled={!email || status === "loading"} className="w-full">
+                {status === "loading" ? "Sending..." : "Send magic link"}
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </>
+          )}
 
           <p className="text-sm text-foreground/55">
             {status === "success" && isConfigured
               ? "Check your inbox for the sign-in link."
-              : status === "success"
-                ? "Supabase env is not configured yet. Use the demo routes after setup."
+              : status === "success" && isDemoMode
+                ? "Testing build ready. Head into Today."
                 : status === "error"
                   ? "Something went wrong. Verify your Supabase configuration and try again."
-                  : "Integrations and reminders are coming soon."}
+                  : isDemoMode
+                    ? "Use this build to test the flow, not the auth layer."
+                    : "Integrations and reminders are coming soon."}
           </p>
         </Card>
       </div>

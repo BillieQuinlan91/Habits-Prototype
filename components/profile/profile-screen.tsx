@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import { ToggleChip } from "@/components/ui/toggle-chip";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/lib/data/actions";
 import { IntegrationInterest, NotificationPreference, Profile, UserHabit } from "@/lib/types";
 import { hasSupabaseEnv, isForcedDemoMode } from "@/lib/supabase/env";
+import { INTEGRATION_OPTIONS } from "@/lib/constants";
 
 export function ProfileScreen({
   profile,
@@ -31,7 +33,14 @@ export function ProfileScreen({
   const [habitItems, setHabitItems] = useState(habits);
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<UserHabit>>>({});
+  const [integrationItems, setIntegrationItems] = useState(integrations);
+  const [notificationState, setNotificationState] = useState({
+    daily_enabled: preferences?.daily_enabled ?? true,
+    daily_time: preferences?.daily_time?.slice(0, 5) ?? "08:00",
+    sunday_enabled: preferences?.sunday_enabled ?? true,
+  });
   const [error, setError] = useState<string | null>(null);
+  const [settingsSaved, setSettingsSaved] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function startEditing(habit: UserHabit) {
@@ -55,6 +64,7 @@ export function ProfileScreen({
       return next;
     });
     setError(null);
+    setSettingsSaved(null);
   }
 
   async function saveHabit(habitId: string) {
@@ -119,6 +129,7 @@ export function ProfileScreen({
 
   async function removeHabit(habitId: string) {
     setError(null);
+    setSettingsSaved(null);
     const previousHabits = habitItems;
     const nextHabits = habitItems.filter((habit) => habit.id !== habitId);
 
@@ -148,6 +159,70 @@ export function ProfileScreen({
       return;
     }
 
+    startTransition(() => {
+      router.refresh();
+    });
+  }
+
+  function toggleIntegration(name: string) {
+    setSettingsSaved(null);
+    setIntegrationItems((current) => {
+      const exists = current.some((item) => item.integration_name === name);
+      if (name === "None") {
+        return exists
+          ? current.filter((item) => item.integration_name !== "None")
+          : [{ id: `demo-${name}`, user_id: profile?.id ?? "demo", integration_name: "None" }];
+      }
+
+      const withoutNone = current.filter((item) => item.integration_name !== "None");
+      return exists
+        ? withoutNone.filter((item) => item.integration_name !== name)
+        : [...withoutNone, { id: `demo-${name}`, user_id: profile?.id ?? "demo", integration_name: name as IntegrationInterest["integration_name"] }];
+    });
+  }
+
+  async function saveSettings() {
+    setError(null);
+    setSettingsSaved(null);
+
+    if (isDemo || isForcedDemoMode() || !hasSupabaseEnv() || !profile) {
+      setSettingsSaved("Settings updated for this demo session.");
+      return;
+    }
+
+    const supabase = createClient();
+    const integrationNames = integrationItems.map((item) => item.integration_name);
+
+    const [{ error: preferenceError }, { error: deleteError }] = await Promise.all([
+      supabase.from("notification_preferences").upsert({
+        user_id: profile.id,
+        daily_enabled: notificationState.daily_enabled,
+        daily_time: `${notificationState.daily_time}:00`,
+        sunday_enabled: notificationState.sunday_enabled,
+      }),
+      supabase.from("integration_interest").delete().eq("user_id", profile.id),
+    ]);
+
+    if (preferenceError || deleteError) {
+      setError(preferenceError?.message ?? deleteError?.message ?? "Unable to save settings.");
+      return;
+    }
+
+    if (integrationNames.length) {
+      const { error: insertError } = await supabase.from("integration_interest").insert(
+        integrationNames.map((name) => ({
+          user_id: profile.id,
+          integration_name: name,
+        })),
+      );
+
+      if (insertError) {
+        setError(insertError.message);
+        return;
+      }
+    }
+
+    setSettingsSaved("Settings saved.");
     startTransition(() => {
       router.refresh();
     });
@@ -313,8 +388,18 @@ export function ProfileScreen({
           <Cable className="h-4 w-4 text-accent" />
           <p className="font-medium">Integrations coming soon</p>
         </div>
+        <p className="text-sm text-foreground/58">
+          Keep the excitement visible, but make the settings feel real. We&apos;ll save what you want next.
+        </p>
         <div className="flex flex-wrap gap-2">
-          {integrations.length ? integrations.map((item) => <Badge key={item.id}>{item.integration_name}</Badge>) : <p className="text-sm text-foreground/48">No selections yet.</p>}
+          {INTEGRATION_OPTIONS.map((option) => (
+            <ToggleChip
+              key={option}
+              label={option}
+              selected={integrationItems.some((item) => item.integration_name === option)}
+              onClick={() => toggleIntegration(option)}
+            />
+          ))}
         </div>
       </Card>
 
@@ -323,11 +408,53 @@ export function ProfileScreen({
           <Bell className="h-4 w-4 text-accent" />
           <p className="font-medium">Notifications</p>
         </div>
-        <div className="space-y-3 text-sm text-foreground/58">
-          <p>Daily reminder: {preferences?.daily_enabled ? `On at ${preferences.daily_time?.slice(0, 5)}` : "Off"}</p>
-          <p>Sunday tribe reminder: {preferences?.sunday_enabled ? "On" : "Off"}</p>
-          <p>Email reminder hooks are scaffolded for a future cron or edge-function pass.</p>
+        <div className="space-y-4 text-sm text-foreground/58">
+          <label className="flex items-center justify-between rounded-2xl border border-border/70 p-3">
+            <span>Daily reminder</span>
+            <input
+              type="checkbox"
+              checked={notificationState.daily_enabled}
+              onChange={(event) =>
+                setNotificationState((current) => ({
+                  ...current,
+                  daily_enabled: event.target.checked,
+                }))
+              }
+            />
+          </label>
+          <div className="flex items-center justify-between rounded-2xl border border-border/70 p-3">
+            <span>Daily reminder time</span>
+            <Input
+              type="time"
+              value={notificationState.daily_time}
+              onChange={(event) =>
+                setNotificationState((current) => ({
+                  ...current,
+                  daily_time: event.target.value,
+                }))
+              }
+              className="h-10 max-w-[132px]"
+            />
+          </div>
+          <label className="flex items-center justify-between rounded-2xl border border-border/70 p-3">
+            <span>Sunday tribe reminder</span>
+            <input
+              type="checkbox"
+              checked={notificationState.sunday_enabled}
+              onChange={(event) =>
+                setNotificationState((current) => ({
+                  ...current,
+                  sunday_enabled: event.target.checked,
+                }))
+              }
+            />
+          </label>
+          <p>Email reminder delivery is still a placeholder, but these preferences now behave like real settings.</p>
         </div>
+        {settingsSaved ? <p className="text-sm text-accent">{settingsSaved}</p> : null}
+        <Button type="button" onClick={() => void saveSettings()} disabled={isPending}>
+          Save settings
+        </Button>
       </Card>
 
       <form action={signOutAction}>
