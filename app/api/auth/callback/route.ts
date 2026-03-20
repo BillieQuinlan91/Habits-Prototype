@@ -1,15 +1,23 @@
 import { NextResponse } from "next/server";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route";
 
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const routeHandlerClient = createRouteHandlerSupabaseClient(request);
 
-  if (code) {
-    const supabase = await createServerSupabaseClient();
-    await supabase?.auth.exchangeCodeForSession(code);
+  if (!routeHandlerClient) {
+    return NextResponse.redirect(new URL("/", request.url));
   }
 
-  return NextResponse.redirect(new URL("/", request.url));
+  const { supabase, response } = routeHandlerClient;
+
+  if (code) {
+    await supabase.auth.exchangeCodeForSession(code);
+  }
+
+  return NextResponse.redirect(new URL("/", request.url), {
+    headers: response.headers,
+  });
 }
