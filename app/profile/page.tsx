@@ -18,6 +18,7 @@ export default async function ProfilePage() {
         habits={bootstrap.habits}
         integrations={bootstrap.integrationInterests}
         preferences={bootstrap.notificationPreferences}
+        isDemo={bootstrap.isDemo}
       />
     </AppShell>
   );
