@@ -1,0 +1,65 @@
+import Link from "next/link";
+import { ReactNode } from "react";
+import { CircleUserRound, House, Users } from "lucide-react";
+
+import { APP_NAME } from "@/lib/constants";
+import { cn } from "@/lib/utils";
+
+export function AppShell({
+  children,
+  activeTab,
+  isDemo = false,
+}: {
+  children: ReactNode;
+  activeTab: "today" | "tribe" | "profile";
+  isDemo?: boolean;
+}) {
+  const tabs = [
+    { href: "/today", label: "Today", icon: House, key: "today" },
+    { href: "/tribe", label: "Tribe", icon: Users, key: "tribe" },
+    { href: "/profile", label: "Profile", icon: CircleUserRound, key: "profile" },
+  ] as const;
+
+  return (
+    <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 pb-28 pt-6 sm:max-w-lg">
+      <header className="mb-6 flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-foreground/38">
+            Small habits shape who you&apos;re becoming.
+          </p>
+          <h1 className="font-display text-3xl font-semibold tracking-tight">{APP_NAME}</h1>
+        </div>
+        {isDemo ? (
+          <span className="rounded-full bg-accent/12 px-3 py-1 text-xs font-semibold text-accent">
+            Demo mode
+          </span>
+        ) : null}
+      </header>
+
+      <main className="flex-1">{children}</main>
+
+      <nav className="fixed inset-x-0 bottom-4 mx-auto flex max-w-md justify-center px-4 sm:max-w-lg">
+        <div className="flex w-full items-center justify-between rounded-full border border-border/70 bg-card/92 p-2 shadow-premium backdrop-blur">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.key;
+
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={cn(
+                  "flex flex-1 flex-col items-center gap-1 rounded-full px-3 py-2 text-xs transition",
+                  active ? "bg-foreground text-surface" : "text-foreground/48",
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                <span>{tab.label}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+    </div>
+  );
+}
