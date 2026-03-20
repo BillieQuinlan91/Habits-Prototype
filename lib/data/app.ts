@@ -2,6 +2,7 @@ import { addDays, format } from "date-fns";
 
 import { demoHabitLogs, demoHabitTemplates, demoOrganizations, demoProfile, demoTribes, demoUserHabits } from "@/lib/demo/data";
 import { buildLeaderboard, calculateTribeWeeklyScore } from "@/lib/score";
+import { isForcedDemoMode } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   HabitLog,
@@ -31,6 +32,10 @@ type AppBootstrap = {
 };
 
 export async function getAppBootstrap(): Promise<AppBootstrap> {
+  if (isForcedDemoMode()) {
+    return getDemoBootstrap();
+  }
+
   const supabase = await createServerSupabaseClient();
 
   if (!supabase) {
