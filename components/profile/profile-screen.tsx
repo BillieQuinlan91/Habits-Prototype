@@ -32,6 +32,7 @@ export function ProfileScreen({
 }) {
   const router = useRouter();
   const [habitItems, setHabitItems] = useState(habits);
+  const focusHabit = habitItems.find((habit) => habit.is_primary) ?? habitItems[0] ?? null;
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<UserHabit>>>({});
   const [integrationItems, setIntegrationItems] = useState(integrations);
@@ -238,7 +239,9 @@ export function ProfileScreen({
           <h2 className="font-display text-3xl font-normal tracking-tight">
             {profile?.full_name ?? "Your profile"}
           </h2>
-          <p className="mt-2 text-sm text-foreground/58">{profile?.email}</p>
+          <p className="mt-2 text-sm text-foreground/58">
+            {profile?.identity_label ?? profile?.email}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           {profile?.tribe?.name ? <Badge>{profile.tribe.name}</Badge> : null}
@@ -251,6 +254,23 @@ export function ProfileScreen({
           variant="profile"
         />
       </Card>
+
+      {focusHabit ? (
+        <Card className="space-y-3">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Current 7-day focus</p>
+            <h3 className="font-display text-2xl font-normal">{focusHabit.name}</h3>
+          </div>
+          <p className="text-sm text-foreground/58">
+            Minimum version: {focusHabit.minimum_label ?? "Keep the threshold gentle."}
+          </p>
+          {habitItems.length > 1 ? (
+            <p className="text-sm text-foreground/48">
+              Additional habits are visible here, but the first-week product is designed around one primary focus.
+            </p>
+          ) : null}
+        </Card>
+      ) : null}
 
       <Card className="space-y-4">
         <div className="flex items-center gap-2">

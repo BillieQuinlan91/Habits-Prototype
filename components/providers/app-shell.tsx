@@ -18,7 +18,7 @@ export function AppShell({
 }) {
   const tabs = [
     { href: "/today", label: "Today", icon: House, key: "today" },
-    { href: "/tribe", label: "Tribe", icon: Users, key: "tribe" },
+    { href: "/tribe", label: "Circle", icon: Users, key: "tribe" },
     { href: "/profile", label: "Profile", icon: CircleUserRound, key: "profile" },
   ] as const;
 

@@ -1,6 +1,6 @@
 import { addDays, eachDayOfInterval, format } from "date-fns";
 
-import { HabitLog, TribeLeaderboard, UserHabit, WeeklyMemberScore } from "@/lib/types";
+import { HabitLog, UserHabit, WeeklyMemberScore } from "@/lib/types";
 import { clamp, getWeekWindow } from "@/lib/utils";
 
 export function calculateUserWeeklyScore(
@@ -56,7 +56,7 @@ export function buildLeaderboard(
     latestComment?: string;
   }>,
   now = new Date(),
-): TribeLeaderboard["members"] {
+): WeeklyMemberScore[] {
   return entries
     .map<WeeklyMemberScore>((entry) => {
       const score = calculateUserWeeklyScore(entry.habits, entry.logs, now);

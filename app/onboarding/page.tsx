@@ -11,7 +11,12 @@ export default async function OnboardingPage() {
     redirect("/auth");
   }
 
-  if (!bootstrap.isDemo && bootstrap.profile?.tribe_id && bootstrap.habits.length > 0) {
+  if (
+    !bootstrap.isDemo &&
+    bootstrap.profile?.tribe_id &&
+    bootstrap.habits.length > 0 &&
+    bootstrap.profile?.onboarding_completed_at
+  ) {
     redirect("/today");
   }
 

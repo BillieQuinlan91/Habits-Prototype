@@ -1,47 +1,51 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Check, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, LockKeyhole, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
-import { ToggleChip } from "@/components/ui/toggle-chip";
-import { INTEGRATION_OPTIONS } from "@/lib/constants";
+import {
+  DOMINO_HABIT_PRESETS,
+  IDENTITY_PRESETS,
+  MINIMUM_VERSION_PRESETS,
+} from "@/lib/constants";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { HabitTemplate, IntegrationName, OnboardingState, Tribe } from "@/lib/types";
-import { cn } from "@/lib/utils";
+import { OnboardingState, Tribe } from "@/lib/types";
+import { cn, toDateKey } from "@/lib/utils";
 
 const initialState: OnboardingState = {
   fullName: "",
+  identityPreset: "",
+  identityCustom: "",
+  habitPreset: "",
+  habitCustom: "",
+  minimumPreset: "",
+  minimumCustom: "",
   tribeMode: "join",
   selectedTribeId: null,
   tribeName: "",
   organizationId: null,
-  selectedTemplateIds: [],
-  customHabits: [],
   integrations: [],
 };
 
+const totalSteps = 6;
+
 export function OnboardingFlow({
   tribes,
-  templates,
   organizations,
 }: {
   tribes: Tribe[];
-  templates: HabitTemplate[];
+  templates: unknown[];
   organizations: Array<{ id: string; name: string }>;
 }) {
   const [step, setStep] = useState(0);
   const [query, setQuery] = useState("");
   const [state, setState] = useState<OnboardingState>(initialState);
-  const [customName, setCustomName] = useState("");
-  const [customType, setCustomType] = useState<"binary" | "measurable">("binary");
-  const [customValue, setCustomValue] = useState("");
-  const [customUnit, setCustomUnit] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,70 +54,46 @@ export function OnboardingFlow({
     [query, tribes],
   );
 
+  const identityLabel =
+    state.identityPreset === "Custom" ? state.identityCustom.trim() : state.identityPreset;
+  const habitLabel = state.habitPreset === "Custom" ? state.habitCustom.trim() : state.habitPreset;
+  const minimumLabel =
+    state.minimumPreset === "Custom" ? state.minimumCustom.trim() : state.minimumPreset;
+  const selectedCircle = tribes.find((tribe) => tribe.id === state.selectedTribeId) ?? null;
+
   function nextStep() {
-    setStep((current) => Math.min(current + 1, 2));
+    setStep((current) => Math.min(current + 1, totalSteps - 1));
   }
 
   function previousStep() {
     setStep((current) => Math.max(current - 1, 0));
   }
 
-  function addTemplate(templateId: string) {
-    setState((current) => {
-      const exists = current.selectedTemplateIds.includes(templateId);
-      const nextIds = exists
-        ? current.selectedTemplateIds.filter((id) => id !== templateId)
-        : [...current.selectedTemplateIds, templateId].slice(0, 5);
-
-      return { ...current, selectedTemplateIds: nextIds };
-    });
-  }
-
-  function addCustomHabit() {
-    if (!customName || state.selectedTemplateIds.length + state.customHabits.length >= 5) {
-      return;
+  function stepIsValid(currentStep: number) {
+    if (currentStep === 0) {
+      return Boolean(state.fullName.trim() && identityLabel);
+    }
+    if (currentStep === 1) {
+      return Boolean(habitLabel);
+    }
+    if (currentStep === 2) {
+      return Boolean(minimumLabel);
+    }
+    if (currentStep === 3) {
+      return true;
+    }
+    if (currentStep === 4) {
+      return state.tribeMode === "join" ? Boolean(state.selectedTribeId) : Boolean(state.tribeName.trim());
     }
 
-    setState((current) => ({
-      ...current,
-      customHabits: [
-        ...current.customHabits,
-        {
-          id: crypto.randomUUID(),
-          name: customName,
-          type: customType,
-          targetValue: customValue ? Number(customValue) : undefined,
-          targetUnit: customUnit || undefined,
-        },
-      ].slice(0, 5),
-    }));
-
-    setCustomName("");
-    setCustomType("binary");
-    setCustomValue("");
-    setCustomUnit("");
+    return true;
   }
-
-  function toggleIntegration(name: IntegrationName) {
-    setState((current) => {
-      if (name === "None") {
-        return { ...current, integrations: ["None"] };
-      }
-
-      const withoutNone = current.integrations.filter((item) => item !== "None");
-      return withoutNone.includes(name)
-        ? { ...current, integrations: withoutNone.filter((item) => item !== name) }
-        : { ...current, integrations: [...withoutNone, name] };
-    });
-  }
-
-  const selectedHabitCount = state.selectedTemplateIds.length + state.customHabits.length;
 
   async function finishOnboarding() {
     setError(null);
 
     if (!hasSupabaseEnv()) {
-      window.location.href = "/today";
+      window.location.href = "/tribe";
       return;
     }
 
@@ -134,8 +114,10 @@ export function OnboardingFlow({
       const { error: profileError } = await supabase.from("profiles").upsert({
         id: user.id,
         email: user.email,
-        full_name: state.fullName,
+        full_name: state.fullName.trim(),
+        identity_label: identityLabel,
         organization_id: selectedOrganization?.id ?? null,
+        onboarding_completed_at: new Date().toISOString(),
       });
 
       if (profileError) {
@@ -148,7 +130,7 @@ export function OnboardingFlow({
         const { data: createdTribe, error: createTribeError } = await supabase.rpc(
           "create_tribe_and_join",
           {
-            tribe_name_input: state.tribeName,
+            tribe_name_input: state.tribeName.trim(),
             org_id_input: selectedOrganization?.id ?? null,
           },
         );
@@ -168,48 +150,40 @@ export function OnboardingFlow({
         }
       }
 
-      const selectedTemplates = templates.filter((template) => state.selectedTemplateIds.includes(template.id));
-      const habitsToInsert = [
-        ...selectedTemplates.map((template) => ({
-          user_id: user.id,
-          name: template.name,
-          type: template.type,
-          target_value: template.suggested_target_value,
-          target_unit: template.suggested_target_unit,
-          source_type: "manual",
-          is_active: true,
-        })),
-        ...state.customHabits.map((habit) => ({
-          user_id: user.id,
-          name: habit.name,
-          type: habit.type,
-          target_value: habit.targetValue ?? null,
-          target_unit: habit.targetUnit ?? null,
-          source_type: "manual",
-          is_active: true,
-        })),
-      ];
+      await supabase.from("user_habits").update({ is_active: false }).eq("user_id", user.id).eq("is_active", true);
 
-      if (habitsToInsert.length) {
-        const { error: habitError } = await supabase.from("user_habits").insert(habitsToInsert);
-        if (habitError) {
-          throw habitError;
-        }
+      const { data: insertedHabit, error: habitError } = await supabase
+        .from("user_habits")
+        .insert({
+          user_id: user.id,
+          name: habitLabel,
+          type: "binary",
+          target_value: null,
+          target_unit: null,
+          minimum_label: minimumLabel,
+          is_primary: true,
+          commitment_start_date: toDateKey(),
+          commitment_length_days: 7,
+          source_type: "manual",
+          is_active: true,
+        })
+        .select("id")
+        .single();
+
+      if (habitError || !insertedHabit) {
+        throw habitError ?? new Error("Unable to create the first habit.");
       }
 
-      if (state.integrations.length) {
-        const { error: integrationError } = await supabase
-          .from("integration_interest")
-          .insert(
-            state.integrations.map((name) => ({
-              user_id: user.id,
-              integration_name: name,
-            })),
-          );
+      const { error: logError } = await supabase.from("habit_logs").upsert({
+        user_id: user.id,
+        user_habit_id: insertedHabit.id,
+        log_date: toDateKey(),
+        completed: true,
+        progress_value: null,
+      });
 
-        if (integrationError) {
-          throw integrationError;
-        }
+      if (logError) {
+        throw logError;
       }
 
       await supabase.from("notification_preferences").upsert({
@@ -219,9 +193,10 @@ export function OnboardingFlow({
         sunday_enabled: true,
       });
 
-      window.location.href = "/today";
+      window.location.href = "/tribe";
     } catch (saveError) {
-      const message = saveError instanceof Error ? saveError.message : "Something went wrong. Perfectly fixable. Try again.";
+      const message =
+        saveError instanceof Error ? saveError.message : "Something went wrong. Try that once more.";
       setError(message);
     } finally {
       setSaving(false);
@@ -231,33 +206,227 @@ export function OnboardingFlow({
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
-        {[0, 1, 2].map((item) => (
+        {Array.from({ length: totalSteps }, (_, item) => (
           <div
             key={item}
-            className={cn(
-              "h-1.5 flex-1 rounded-full",
-              item <= step ? "bg-accent" : "bg-foreground/10",
-            )}
+            className={cn("h-1.5 flex-1 rounded-full", item <= step ? "bg-accent" : "bg-foreground/10")}
           />
         ))}
       </div>
 
       {step === 0 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={2} totalCount={5} variant="onboarding" />
+          <ConstellationWidget activeCount={1} totalCount={6} variant="onboarding" />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 1</p>
-            <h2 className="font-display text-3xl font-normal tracking-tight">Find your tribe</h2>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Start with identity</h2>
             <p className="text-sm text-foreground/58">
-              Start with the people who will notice if you disappear. Small groups tend to work rather well.
+              Choose the version of yourself you want this quarter to quietly reinforce.
             </p>
           </div>
 
           <Input
-            placeholder="Your name"
+            placeholder="What should your circle call you?"
             value={state.fullName}
             onChange={(event) => setState((current) => ({ ...current, fullName: event.target.value }))}
           />
+
+          <div className="grid gap-2">
+            {IDENTITY_PRESETS.map((preset) => {
+              const selected = state.identityPreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setState((current) => ({ ...current, identityPreset: preset }))}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition",
+                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-medium">{preset}</span>
+                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {state.identityPreset === "Custom" ? (
+            <Input
+              placeholder="Write your own identity"
+              value={state.identityCustom}
+              onChange={(event) => setState((current) => ({ ...current, identityCustom: event.target.value }))}
+            />
+          ) : null}
+
+          <Button className="w-full" onClick={nextStep} disabled={!stepIsValid(0)}>
+            Continue
+            <ChevronRight className="ml-2 h-4 w-4" />
+          </Button>
+        </Card>
+      ) : null}
+
+      {step === 1 ? (
+        <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={2} totalCount={6} variant="onboarding" />
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Choose one domino habit</h2>
+            <p className="text-sm text-foreground/58">
+              Pick the one action that makes the rest of your days easier to live well.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            {DOMINO_HABIT_PRESETS.map((preset) => {
+              const selected = state.habitPreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setState((current) => ({ ...current, habitPreset: preset }))}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition",
+                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-medium">{preset}</span>
+                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {state.habitPreset === "Custom" ? (
+            <Input
+              placeholder="Write your domino habit"
+              value={state.habitCustom}
+              onChange={(event) => setState((current) => ({ ...current, habitCustom: event.target.value }))}
+            />
+          ) : null}
+
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={previousStep}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button className="flex-1" onClick={nextStep} disabled={!stepIsValid(1)}>
+              Continue
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {step === 2 ? (
+        <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={3} totalCount={6} variant="onboarding" />
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Shrink it once more</h2>
+            <p className="text-sm text-foreground/58">
+              On a difficult day, what is the smallest version you can still keep?
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            {MINIMUM_VERSION_PRESETS.map((preset) => {
+              const selected = state.minimumPreset === preset;
+              return (
+                <button
+                  key={preset}
+                  type="button"
+                  onClick={() => setState((current) => ({ ...current, minimumPreset: preset }))}
+                  className={cn(
+                    "rounded-2xl border p-4 text-left transition",
+                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-4">
+                    <span className="font-medium">{preset}</span>
+                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {state.minimumPreset === "Custom" ? (
+            <Input
+              placeholder="Write your minimum version"
+              value={state.minimumCustom}
+              onChange={(event) => setState((current) => ({ ...current, minimumCustom: event.target.value }))}
+            />
+          ) : null}
+
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={previousStep}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button className="flex-1" onClick={nextStep} disabled={!stepIsValid(2)}>
+              Continue
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {step === 3 ? (
+        <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={4} totalCount={6} variant="onboarding" />
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 4</p>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Commit to seven days</h2>
+            <p className="text-sm text-foreground/58">
+              One habit. One week. Additional habits can wait until this one feels real.
+            </p>
+          </div>
+
+          <Card className="rounded-3xl bg-surface/70">
+            <div className="space-y-3">
+              <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Your first-week focus</p>
+              <div>
+                <p className="font-medium">{identityLabel}</p>
+                <p className="mt-2 text-sm text-foreground/58">{habitLabel}</p>
+                <p className="mt-1 text-sm text-foreground/48">Minimum version: {minimumLabel}</p>
+              </div>
+            </div>
+          </Card>
+
+          <div className="rounded-3xl border border-border/80 bg-card px-4 py-4">
+            <div className="flex items-center gap-3">
+              <LockKeyhole className="h-4 w-4 text-accent" />
+              <p className="text-sm text-foreground/62">
+                For your first week, the goal is consistency, not range.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={previousStep}>
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back
+            </Button>
+            <Button className="flex-1" onClick={nextStep}>
+              I’m in
+            </Button>
+          </div>
+        </Card>
+      ) : null}
+
+      {step === 4 ? (
+        <Card className="space-y-5 animate-rise">
+          <ConstellationWidget activeCount={5} totalCount={6} variant="onboarding" />
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 5</p>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Join a circle</h2>
+            <p className="text-sm text-foreground/58">
+              Choose the small group that will notice when you drift.
+            </p>
+          </div>
 
           <div className="flex gap-2">
             <Button
@@ -279,7 +448,7 @@ export function OnboardingFlow({
           {state.tribeMode === "join" ? (
             <div className="space-y-3">
               <Input
-                placeholder="Search tribe names"
+                placeholder="Search circle names"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -299,23 +468,18 @@ export function OnboardingFlow({
                     <div>
                       <p className="font-medium">{tribe.name}</p>
                       <p className="text-sm text-foreground/48">
-                        {tribe.organization?.name ?? "Independent"} · {tribe.member_count ?? 0}/8 members
+                        {tribe.organization?.name ?? "Independent"} · {tribe.member_count ?? 0}/6 members
                       </p>
                     </div>
                     {state.selectedTribeId === tribe.id ? <Check className="h-4 w-4 text-accent" /> : null}
                   </button>
                 ))}
-                {!filteredTribes.length ? (
-                  <div className="rounded-2xl border border-dashed border-border p-4 text-sm text-foreground/50">
-                    Nothing suitable yet. A new tribe is a perfectly respectable option.
-                  </div>
-                ) : null}
               </div>
             </div>
           ) : (
             <div className="space-y-3">
               <Input
-                placeholder="Tribe name"
+                placeholder="Circle name"
                 value={state.tribeName}
                 onChange={(event) => setState((current) => ({ ...current, tribeName: event.target.value }))}
               />
@@ -328,7 +492,7 @@ export function OnboardingFlow({
                   }))
                 }
               >
-                <option value="">None</option>
+                <option value="">No organization</option>
                 {organizations.map((organization) => (
                   <option key={organization.id} value={organization.id}>
                     {organization.name}
@@ -338,162 +502,58 @@ export function OnboardingFlow({
             </div>
           )}
 
-          <Button
-            className="w-full"
-            onClick={nextStep}
-            disabled={
-              !state.fullName ||
-              (state.tribeMode === "join" ? !state.selectedTribeId : !state.tribeName)
-            }
-          >
-            Continue
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Card>
-      ) : null}
-
-      {step === 1 ? (
-        <Card className="space-y-5 animate-rise">
-          <ConstellationWidget
-            activeCount={Math.max(1, selectedHabitCount)}
-            totalCount={5}
-            variant="onboarding"
-          />
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
-            <h2 className="font-display text-3xl font-normal tracking-tight">Choose 1 to 5 habits</h2>
-            <p className="text-sm text-foreground/58">
-              Keep it modest. Pick the habits you would genuinely repeat.
-            </p>
-          </div>
-
-          <Card className="rounded-3xl bg-accent/6">
-            <p className="font-medium">What happens next</p>
-            <p className="mt-2 text-sm text-foreground/58">
-              You&apos;ll land on Today, log a few things, and on Sunday we&apos;ll guide you into the tribe ritual.
-            </p>
-          </Card>
-
-          <div className="grid gap-2">
-            {templates.map((template) => {
-              const selected = state.selectedTemplateIds.includes(template.id);
-              return (
-                <button
-                  key={template.id}
-                  type="button"
-                  onClick={() => addTemplate(template.id)}
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition",
-                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
-                  )}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">{template.name}</span>
-                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
-                  </div>
-                  <p className="mt-1 text-sm text-foreground/48">
-                    {template.type === "binary"
-                      ? "Done / not done"
-                      : `${template.suggested_target_value} ${template.suggested_target_unit}`}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-
-          <div className="rounded-3xl border border-dashed border-border p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              <p className="font-medium">Add custom habit</p>
-            </div>
-            <div className="grid gap-3">
-              <Input placeholder="Habit name" value={customName} onChange={(event) => setCustomName(event.target.value)} />
-              <Select value={customType} onChange={(event) => setCustomType(event.target.value as "binary" | "measurable")}>
-                <option value="binary">Binary</option>
-                <option value="measurable">Measurable</option>
-              </Select>
-              {customType === "measurable" ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <Input
-                    placeholder="Target value"
-                    inputMode="numeric"
-                    value={customValue}
-                    onChange={(event) => setCustomValue(event.target.value)}
-                  />
-                  <Input placeholder="Unit" value={customUnit} onChange={(event) => setCustomUnit(event.target.value)} />
-                </div>
-              ) : null}
-              <Button variant="secondary" onClick={addCustomHabit}>
-                Add custom habit
-              </Button>
-            </div>
-          </div>
-
-          {!!state.customHabits.length ? (
-            <div className="flex flex-wrap gap-2">
-              {state.customHabits.map((habit) => (
-                <ToggleChip key={habit.id} label={habit.name} selected onClick={() => {}} />
-              ))}
-            </div>
-          ) : null}
-
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={previousStep}>
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button className="flex-1" onClick={nextStep} disabled={selectedHabitCount < 1 || selectedHabitCount > 5}>
+            <Button className="flex-1" onClick={nextStep} disabled={!stepIsValid(4)}>
               Continue
             </Button>
           </div>
         </Card>
       ) : null}
 
-      {step === 2 ? (
+      {step === 5 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget
-            activeCount={Math.max(1, state.integrations.length || 1)}
-            totalCount={5}
-            variant="onboarding"
-          />
+          <ConstellationWidget activeCount={6} totalCount={6} variant="onboarding" />
           <div className="space-y-2">
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
-            <h2 className="font-display text-3xl font-normal tracking-tight">Integrations coming soon</h2>
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 6</p>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Your circle will see today</h2>
             <p className="text-sm text-foreground/58">
-              Tell us what you would like connected next. We&apos;re keeping notes.
+              First check-in now. After that, you’ll land straight in the circle dashboard.
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {INTEGRATION_OPTIONS.map((option) => (
-              <ToggleChip
-                key={option}
-                label={option}
-                selected={state.integrations.includes(option)}
-                onClick={() => toggleIntegration(option)}
-              />
-            ))}
-          </div>
-
-          <Card className="rounded-3xl bg-accent/6">
-            <p className="font-medium">What happens next</p>
-            <p className="mt-2 text-sm text-foreground/58">
-              You&apos;ll land on Today. The routine can begin there.
-            </p>
+          <Card className="rounded-3xl bg-surface/70">
+            <div className="flex items-start gap-3">
+              <Users className="mt-1 h-4 w-4 text-accent" />
+              <div>
+                <p className="font-medium">
+                  {state.tribeMode === "create" ? state.tribeName.trim() : selectedCircle?.name ?? "Your circle"}
+                </p>
+                <p className="mt-2 text-sm text-foreground/58">
+                  Daily progress is visible to everyone in the group. That is the point.
+                </p>
+              </div>
+            </div>
           </Card>
 
+          <div className="rounded-3xl border border-border/80 bg-card px-4 py-4">
+            <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Day one check-in</p>
+            <p className="mt-2 font-medium">{habitLabel}</p>
+            <p className="mt-1 text-sm text-foreground/56">Minimum version: {minimumLabel}</p>
+          </div>
+
           {error ? <p className="text-sm text-red-500">{error}</p> : null}
+
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={previousStep}>
               <ChevronLeft className="mr-2 h-4 w-4" />
               Back
             </Button>
-            <Button
-              className="flex-1"
-              onClick={finishOnboarding}
-              disabled={saving || selectedHabitCount < 1 || selectedHabitCount > 5}
-            >
-              {saving ? "Saving..." : "Finish onboarding"}
+            <Button className="flex-1" onClick={finishOnboarding} disabled={saving}>
+              {saving ? "Checking in..." : "Check in for day one"}
             </Button>
           </div>
         </Card>

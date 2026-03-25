@@ -1,5 +1,5 @@
 import { clsx, type ClassValue } from "clsx";
-import { endOfWeek, format, isSunday, parseISO, startOfWeek } from "date-fns";
+import { addDays, differenceInCalendarDays, endOfWeek, format, isSunday, parseISO, startOfWeek } from "date-fns";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -11,6 +11,11 @@ export function getWeekWindow(date = new Date()) {
     start: startOfWeek(date, { weekStartsOn: 1 }),
     end: endOfWeek(date, { weekStartsOn: 1 }),
   };
+}
+
+export function getWeekDateKeys(date = new Date()) {
+  const { start } = getWeekWindow(date);
+  return Array.from({ length: 7 }, (_, index) => toDateKey(addDays(start, index)));
 }
 
 export function toDateKey(date = new Date()) {
@@ -31,4 +36,12 @@ export function clamp(value: number, min: number, max: number) {
 
 export function toPercent(value: number) {
   return Math.round(value * 100);
+}
+
+export function getCommitmentDay(startDate?: string | null, now = new Date()) {
+  if (!startDate) {
+    return 1;
+  }
+
+  return Math.max(1, differenceInCalendarDays(now, parseISO(startDate)) + 1);
 }

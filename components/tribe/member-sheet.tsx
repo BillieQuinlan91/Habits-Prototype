@@ -7,14 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { MEMBER_REACTION_OPTIONS } from "@/lib/constants";
-import { WeeklyMemberScore } from "@/lib/types";
+import { CircleMemberStatus } from "@/lib/types";
 
 export function MemberSheet({
   member,
   onSend,
   onClose,
 }: {
-  member: WeeklyMemberScore;
+  member: CircleMemberStatus;
   onSend: (payload: { userId: string; reaction: string | null; message: string }) => void;
   onClose: () => void;
 }) {

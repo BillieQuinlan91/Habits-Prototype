@@ -20,8 +20,10 @@ export type Profile = {
   id: string;
   email: string;
   full_name: string | null;
+  identity_label?: string | null;
   tribe_id: string | null;
   organization_id: string | null;
+  onboarding_completed_at?: string | null;
   created_at?: string;
   updated_at?: string;
   tribe?: Tribe | null;
@@ -44,6 +46,10 @@ export type UserHabit = {
   type: HabitType;
   target_value: number | null;
   target_unit: string | null;
+  minimum_label?: string | null;
+  is_primary?: boolean;
+  commitment_start_date?: string | null;
+  commitment_length_days?: number | null;
   source_type: string;
   is_active: boolean;
   created_at?: string;
@@ -74,10 +80,30 @@ export type WeeklyMemberScore = {
   latestComment?: string;
 };
 
-export type TribeLeaderboard = {
-  tribe: Tribe;
-  members: WeeklyMemberScore[];
-  tribeScore: number;
+export type CircleMemberStatus = {
+  user_id: string;
+  full_name: string;
+  status: "checked_in" | "pending" | "missed";
+  streak: number;
+  percentage: number;
+  isCurrentUser?: boolean;
+  checkedInAt?: string | null;
+  reactions: string[];
+  latestComment?: string;
+};
+
+export type CircleDashboard = {
+  circle: Tribe;
+  memberCount: number;
+  checkedInCount: number;
+  missedCount: number;
+  pendingCount: number;
+  completionPercentage: number;
+  circleStreak: number;
+  members: CircleMemberStatus[];
+  currentUserStatus: "checked_in" | "pending" | "missed";
+  accountabilityMessage: string;
+  activity: Array<{ id: string; text: string }>;
 };
 
 export type OrganizationRanking = {
@@ -134,21 +160,25 @@ export type MemberComment = {
 
 export type OnboardingState = {
   fullName: string;
+  identityPreset: string;
+  identityCustom: string;
+  habitPreset: string;
+  habitCustom: string;
+  minimumPreset: string;
+  minimumCustom: string;
   tribeMode: "join" | "create";
   selectedTribeId: string | null;
   tribeName: string;
   organizationId: string | null;
-  selectedTemplateIds: string[];
-  customHabits: Array<{
-    id: string;
-    name: string;
-    type: HabitType;
-    targetValue?: number;
-    targetUnit?: string;
-  }>;
   integrations: IntegrationName[];
 };
 
 export type TodayHabitItem = UserHabit & {
   log: HabitLog | null;
+};
+
+export type WeeklyConstellationRow = {
+  habitId: string;
+  habitName: string;
+  completions: boolean[];
 };

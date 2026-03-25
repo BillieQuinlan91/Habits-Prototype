@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, Sparkles } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowRight, CheckCircle2, LockKeyhole } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -9,43 +9,55 @@ import { Card } from "@/components/ui/card";
 import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { WeeklyHabitConstellation } from "@/components/ui/weekly-habit-constellation";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { TodayHabitItem } from "@/lib/types";
-import { isSundayLocal, toPercent } from "@/lib/utils";
+import { HabitLog, Profile, TodayHabitItem, WeeklyConstellationRow } from "@/lib/types";
+import { getCommitmentDay, getWeekDateKeys, toPercent } from "@/lib/utils";
 
 export function TodayScreen({
+  profile,
   habits,
+  weekLogs,
   isDemo = false,
 }: {
+  profile: Profile | null;
   habits: TodayHabitItem[];
+  weekLogs: HabitLog[];
   isDemo?: boolean;
 }) {
   const router = useRouter();
   const [items, setItems] = useState(habits);
-  const [showSundayPush, setShowSundayPush] = useState(false);
-  const [redirectCount, setRedirectCount] = useState(3);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const completed = items.filter((item) => item.log?.completed).length;
-  const percentage = useMemo(() => (items.length ? (completed / items.length) * 100 : 0), [completed, items.length]);
+  const focusHabit = useMemo(
+    () => items.find((habit) => habit.is_primary) ?? items[0] ?? null,
+    [items],
+  );
+  const parkedHabits = Math.max(0, items.length - (focusHabit ? 1 : 0));
 
-  useEffect(() => {
-    if (!showSundayPush) {
-      return;
-    }
-
-    if (redirectCount <= 0) {
-      router.push("/tribe");
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      setRedirectCount((current) => current - 1);
-    }, 1000);
-
-    return () => window.clearTimeout(timeout);
-  }, [redirectCount, router, showSundayPush]);
+  const weeklyRows = useMemo<WeeklyConstellationRow[]>(
+    () =>
+      focusHabit
+        ? [
+            {
+              habitId: focusHabit.id,
+              habitName: focusHabit.name,
+              completions: getWeekDateKeys().map(
+                (date) =>
+                  weekLogs.some(
+                    (log) => log.user_habit_id === focusHabit.id && log.log_date === date && log.completed,
+                  ) || (focusHabit.log?.log_date === date && Boolean(focusHabit.log?.completed)),
+              ),
+            },
+          ]
+        : [],
+    [focusHabit, weekLogs],
+  );
+  const completedCount = weeklyRows[0]?.completions.filter(Boolean).length ?? 0;
+  const focusProgress = focusHabit?.log?.completed ? 100 : 0;
+  const commitmentDay = getCommitmentDay(focusHabit?.commitment_start_date);
+  const commitmentLength = focusHabit?.commitment_length_days ?? 7;
 
   function buildNextLog(habit: TodayHabitItem, nextCompleted: boolean, nextProgressValue: number | null) {
     return {
@@ -82,96 +94,143 @@ export function TodayScreen({
     router.refresh();
   }
 
-  function finishSundayIfNeeded(nextItems: TodayHabitItem[]) {
-    if (isSundayLocal() && nextItems.every((habit) => habit.log?.completed)) {
-      setRedirectCount(3);
-      setShowSundayPush(true);
-    }
-  }
-
-  async function toggleHabit(habitId: string) {
-    const currentHabit = items.find((habit) => habit.id === habitId);
-    if (!currentHabit) {
+  async function toggleHabit() {
+    if (!focusHabit) {
       return;
     }
 
-    const nextCompleted = !(currentHabit.log?.completed ?? false);
+    const nextCompleted = !(focusHabit.log?.completed ?? false);
     const nextProgressValue =
-      currentHabit.type === "measurable"
-        ? currentHabit.log?.progress_value ?? currentHabit.target_value ?? null
-        : currentHabit.log?.progress_value ?? null;
+      focusHabit.type === "measurable"
+        ? focusHabit.log?.progress_value ?? focusHabit.target_value ?? null
+        : focusHabit.log?.progress_value ?? null;
 
     const next = items.map((habit) =>
-      habit.id === habitId
-        ? {
-            ...habit,
-            log: buildNextLog(habit, nextCompleted, nextProgressValue),
-          }
+      habit.id === focusHabit.id
+        ? { ...habit, log: buildNextLog(habit, nextCompleted, nextProgressValue) }
         : habit,
     );
 
     setFeedback(null);
     setItems(next);
-    finishSundayIfNeeded(next);
-    await persistLog(currentHabit, nextCompleted, nextProgressValue);
+    await persistLog(focusHabit, nextCompleted, nextProgressValue);
   }
 
-  async function updateProgress(habitId: string, rawValue: string) {
-    const currentHabit = items.find((habit) => habit.id === habitId);
-    if (!currentHabit) {
+  async function updateProgress(rawValue: string) {
+    if (!focusHabit) {
       return;
     }
 
     const nextProgressValue = rawValue === "" ? null : Number(rawValue);
     const targetReached =
-      currentHabit.target_value !== null &&
+      focusHabit.target_value !== null &&
       nextProgressValue !== null &&
-      nextProgressValue >= currentHabit.target_value;
-    const nextCompleted = currentHabit.log?.completed ?? targetReached;
+      nextProgressValue >= focusHabit.target_value;
+    const nextCompleted = focusHabit.log?.completed ?? targetReached;
 
     const next = items.map((habit) =>
-      habit.id === habitId
-        ? {
-            ...habit,
-            log: buildNextLog(habit, nextCompleted, nextProgressValue),
-          }
+      habit.id === focusHabit.id
+        ? { ...habit, log: buildNextLog(habit, nextCompleted, nextProgressValue) }
         : habit,
     );
 
     setFeedback(null);
     setItems(next);
-    finishSundayIfNeeded(next);
-    await persistLog(currentHabit, nextCompleted, nextProgressValue);
+    await persistLog(focusHabit, nextCompleted, nextProgressValue);
+  }
+
+  if (!focusHabit) {
+    return (
+      <Card>
+        <p className="font-medium">Your first habit will appear here after onboarding.</p>
+      </Card>
+    );
   }
 
   return (
     <div className="space-y-5">
-      <Card className="overflow-hidden">
-        <div className="space-y-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
-              <h2 className="font-display text-3xl font-normal tracking-tight">
-                {completed === items.length ? "The rhythm continues." : "A good place to continue."}
-              </h2>
-              <p className="mt-2 max-w-[240px] text-sm text-foreground/58">
-                Small actions, repeated often, form a pattern soon enough.
-              </p>
-            </div>
-            <span className="rounded-full bg-surface px-3 py-2 text-sm font-medium text-foreground/72">
-              {completed}/{items.length}
-            </span>
+      <Card className="space-y-5 overflow-hidden">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
+            <h2 className="font-display text-3xl font-normal tracking-tight">
+              {focusHabit.log?.completed ? "Today's mark is in." : "Keep the promise small."}
+            </h2>
+            <p className="mt-2 max-w-[260px] text-sm text-foreground/58">
+              {profile?.identity_label ?? "One repeated action"} becomes more believable when it shows up again today.
+            </p>
           </div>
-          <ConstellationWidget
-            activeCount={completed}
-            totalCount={items.length || 1}
-            variant="today"
-          />
-          <Progress value={percentage} />
-          <p className="text-sm text-foreground/58">
-            {toPercent(percentage / 100)}% complete. Progress has been spotted.
+          <span className="rounded-full bg-surface px-3 py-2 text-sm font-medium text-foreground/72">
+            Day {Math.min(commitmentDay, commitmentLength)}/{commitmentLength}
+          </span>
+        </div>
+
+        <ConstellationWidget activeCount={focusHabit.log?.completed ? 1 : 0} totalCount={1} variant="today" />
+        <Progress value={focusProgress} />
+        <p className="text-sm text-foreground/58">
+          {focusHabit.log?.completed ? "Checked in for today." : "A single check-in keeps the week moving."}
+        </p>
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Current focus</p>
+          <h3 className="font-display text-2xl font-normal">{focusHabit.name}</h3>
+          <p className="mt-2 text-sm text-foreground/58">
+            Minimum version: {focusHabit.minimum_label ?? "Keep it small enough to repeat."}
           </p>
         </div>
+
+        {focusHabit.type === "measurable" ? (
+          <div className="flex items-center gap-2">
+            <Input
+              type="number"
+              inputMode="numeric"
+              value={focusHabit.log?.progress_value ?? ""}
+              onChange={(event) => void updateProgress(event.target.value)}
+              className="h-11 max-w-[140px]"
+              placeholder="Amount"
+            />
+            <span className="text-xs uppercase tracking-[0.18em] text-foreground/38">
+              {focusHabit.target_unit}
+            </span>
+          </div>
+        ) : null}
+
+        <Button className="w-full" onClick={() => void toggleHabit()}>
+          <CheckCircle2 className="mr-2 h-4 w-4" />
+          {focusHabit.log?.completed ? "Undo today’s check-in" : "Check in"}
+        </Button>
+
+        <Button variant="secondary" className="w-full" onClick={() => router.push("/tribe")}>
+          See your circle
+          <ArrowRight className="ml-2 h-4 w-4" />
+        </Button>
+      </Card>
+
+      {parkedHabits > 0 ? (
+        <Card className="space-y-3">
+          <div className="flex items-center gap-2">
+            <LockKeyhole className="h-4 w-4 text-accent" />
+            <p className="font-medium">Additional habits can wait.</p>
+          </div>
+          <p className="text-sm text-foreground/58">
+            {parkedHabits} other {parkedHabits === 1 ? "habit is" : "habits are"} parked while your first 7-day
+            focus settles in.
+          </p>
+        </Card>
+      ) : null}
+
+      <Card className="space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">This week</p>
+          <h3 className="font-display text-2xl font-normal">A visible pattern</h3>
+          <p className="mt-2 text-sm text-foreground/58">
+            One row. One habit. A small chain worth protecting.
+          </p>
+        </div>
+        <WeeklyHabitConstellation rows={weeklyRows} completedCount={completedCount} totalCount={7} />
+        <p className="text-sm text-foreground/58">{toPercent(completedCount / 7)}% of the week has been kept.</p>
       </Card>
 
       {feedback ? (
@@ -180,84 +239,9 @@ export function TodayScreen({
         </p>
       ) : null}
 
-      <div className="space-y-3">
-        {items.map((habit) => (
-          <div
-            key={habit.id}
-            className={`group w-full rounded-2xl border p-4 text-left transition ${
-              habit.log?.completed
-                ? "border-success/60 bg-success/10 animate-pulseSoft"
-                : "border-border bg-card"
-            }`}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="font-medium">{habit.name}</p>
-                <p className="mt-1 text-sm text-foreground/48">
-                  {habit.type === "measurable"
-                    ? `${habit.log?.progress_value ?? 0} / ${habit.target_value ?? 0} ${habit.target_unit ?? ""}`
-                    : "Done / not done"}
-                </p>
-                {habit.type === "measurable" ? (
-                  <div className="mt-3 flex items-center gap-2">
-                    <Input
-                      type="number"
-                      inputMode="numeric"
-                      value={habit.log?.progress_value ?? ""}
-                      onChange={(event) => void updateProgress(habit.id, event.target.value)}
-                      className="h-10 max-w-[120px]"
-                      placeholder="Amount"
-                    />
-                    <span className="text-xs uppercase tracking-[0.18em] text-foreground/38">
-                      {habit.target_unit}
-                    </span>
-                  </div>
-                ) : null}
-              </div>
-              <button
-                type="button"
-                onClick={() => void toggleHabit(habit.id)}
-                className={`flex h-10 w-10 items-center justify-center rounded-full border transition ${
-                  habit.log?.completed
-                    ? "border-success bg-success text-white"
-                    : "border-border bg-white"
-                }`}
-              >
-                <CheckCircle2 className="h-5 w-5" />
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {showSundayPush ? (
-        <Card className="space-y-4 bg-foreground text-surface">
-          <div className="flex items-center gap-2 text-accent2">
-            <Sparkles className="h-4 w-4" />
-            <p className="text-xs uppercase tracking-[0.24em]">Sunday ritual</p>
-          </div>
-          <div>
-            <h3 className="font-display text-2xl font-normal">See how your tribe is doing this week.</h3>
-            <p className="mt-2 text-sm text-surface/72">
-              A thoughtful week deserves a small social visit. Moving in {redirectCount}...
-            </p>
-          </div>
-          <Button
-            variant="secondary"
-            className="w-full border-surface/20 bg-surface text-foreground"
-            onClick={() => {
-              router.push("/tribe");
-            }}
-          >
-            Go now
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </Card>
-      ) : null}
-
       {isDemo ? (
         <p className="text-center text-xs text-foreground/40">
-          Demo mode previews the flow. Persistence can arrive later.
+          Demo mode previews the first-week rhythm without persistence.
         </p>
       ) : null}
     </div>

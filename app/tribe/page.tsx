@@ -11,12 +11,17 @@ export default async function TribePage() {
     redirect("/auth");
   }
 
+  if (
+    !bootstrap.isDemo &&
+    bootstrap.profile &&
+    (!bootstrap.profile.tribe_id || bootstrap.habits.length === 0 || !bootstrap.profile.onboarding_completed_at)
+  ) {
+    redirect("/onboarding");
+  }
+
   return (
     <AppShell activeTab="tribe" isDemo={bootstrap.isDemo} showFeedbackLink>
-      <TribeScreen
-        leaderboard={bootstrap.leaderboard}
-        rankings={bootstrap.organizationRankings}
-      />
+      <TribeScreen circleDashboard={bootstrap.circleDashboard} />
     </AppShell>
   );
 }
