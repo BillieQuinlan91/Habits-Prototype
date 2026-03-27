@@ -12,7 +12,6 @@ export function TeamMemberProgressRow({
   periodDates,
   checkedInDates,
   isHighlighted,
-  helperText,
 }: {
   name: string;
   color: string;
@@ -23,19 +22,18 @@ export function TeamMemberProgressRow({
   periodDates: string[];
   checkedInDates: string[];
   isHighlighted?: boolean;
-  helperText?: string;
 }) {
   const checkedInSet = new Set(checkedInDates);
 
   return (
     <div
       className={cn(
-        "rounded-2xl border border-border/70 bg-card px-4 py-4 transition",
+        "rounded-2xl border border-border/70 bg-card px-3.5 py-3 transition",
         isHighlighted ? "border-accent/35 bg-accent/6" : "",
       )}
     >
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
           <span className="h-3 w-3 rounded-full" style={{ backgroundColor: color }} />
           <p className="font-medium">{name}</p>
         </div>
@@ -43,13 +41,13 @@ export function TeamMemberProgressRow({
           {completedDays}/{totalDays}
         </span>
       </div>
-      <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-surface">
+      <div className="mt-2.5 h-2.5 overflow-hidden rounded-full bg-surface">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${completionPercent}%`, backgroundColor: color }}
         />
       </div>
-      <div className={cn("mt-3", period === "week" ? "flex items-center gap-2" : "grid grid-cols-7 gap-1.5")}>
+      <div className={cn("mt-2.5", period === "week" ? "flex items-center gap-2" : "grid grid-cols-7 gap-1.5")}>
         {periodDates.map((date, index) => {
           return (
             <span
@@ -63,7 +61,6 @@ export function TeamMemberProgressRow({
           );
         })}
       </div>
-      {helperText ? <p className="mt-3 text-sm text-foreground/54">{helperText}</p> : null}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import { formatDayLabel } from "@/lib/team/teamMappers";
 import { TeamMemberProgress } from "@/lib/types";
 
 import { TeamMemberProgressRow } from "@/components/team/TeamMemberProgressRow";
@@ -28,7 +27,7 @@ export function TeamMemberProgressList({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {members.map((member) => {
         const missedSelectedDate = selectedDate ? !member.highlightDates.includes(selectedDate) : false;
 
@@ -44,9 +43,6 @@ export function TeamMemberProgressList({
             periodDates={member.periodDates}
             checkedInDates={member.checkedInDates}
             isHighlighted={missedSelectedDate}
-            helperText={
-              missedSelectedDate && selectedDate ? `Missed ${formatDayLabel(selectedDate)}` : undefined
-            }
           />
         );
       })}
