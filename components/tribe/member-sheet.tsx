@@ -36,7 +36,9 @@ export function MemberSheet({
       <Card className="w-full animate-rise rounded-[32px]">
         <div className="space-y-5">
           <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Encouragement</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">
+              {member.status === "checked_in" ? "Celebrate" : "Cheer on"}
+            </p>
             <h3 className="font-display text-2xl font-semibold">{member.full_name}</h3>
             <p className="mt-2 text-sm text-foreground/58">
               {Math.round(member.percentage * 100)}% this week · {member.streak} day streak
@@ -44,7 +46,9 @@ export function MemberSheet({
           </div>
 
           <div className="rounded-3xl bg-foreground/4 p-4 text-sm text-foreground/58">
-            {member.latestComment ?? "A brief note or reaction will do nicely."}
+            {member.status === "checked_in"
+              ? member.latestComment ?? "They checked in today. A little recognition would suit."
+              : member.latestComment ?? "They have not checked in yet. A quick nudge might help."}
           </div>
 
           <div className="flex gap-2">
@@ -71,7 +75,7 @@ export function MemberSheet({
           {sent ? (
             <div className="flex items-center gap-2 rounded-2xl bg-accent/8 px-4 py-3 text-sm text-accent">
               <MessageCircleMore className="h-4 w-4" />
-              Encouragement sent. Quietly impressive.
+              {member.status === "checked_in" ? "Celebration sent." : "Encouragement sent."}
             </div>
           ) : null}
 

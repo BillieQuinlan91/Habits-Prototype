@@ -21,7 +21,7 @@ export default async function TribePage() {
 
   return (
     <AppShell activeTab="tribe" isDemo={bootstrap.isDemo} showFeedbackLink>
-      <TribeScreen circleDashboard={bootstrap.circleDashboard} />
+      <TribeScreen circleDashboard={bootstrap.circleDashboard} isDemo={bootstrap.isDemo} />
     </AppShell>
   );
 }

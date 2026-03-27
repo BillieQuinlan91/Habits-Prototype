@@ -38,10 +38,14 @@ function describeWaitingOn(members: CircleMemberStatus[]) {
 
 export function TeamRing({
   members,
+  eyebrow = "Today",
   title = "Team ring",
+  showMembers = true,
 }: {
   members: CircleMemberStatus[];
+  eyebrow?: string;
   title?: string;
+  showMembers?: boolean;
 }) {
   const size = 224;
   const strokeWidth = 18;
@@ -58,7 +62,7 @@ export function TeamRing({
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
+          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">{eyebrow}</p>
           <h2 className="font-display text-3xl font-normal tracking-tight">{title}</h2>
         </div>
       </div>
@@ -101,52 +105,54 @@ export function TeamRing({
         </div>
       </div>
 
-      <div className="grid gap-2">
-        {members.map((member, index) => (
-          <div
-            key={member.user_id}
-            className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface/50 px-3 py-2"
-          >
-            <div className="flex items-center gap-3">
+      {showMembers ? (
+        <div className="grid gap-2">
+          {members.map((member, index) => (
+            <div
+              key={member.user_id}
+              className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface/50 px-3 py-2"
+            >
+              <div className="flex items-center gap-3">
+                <span
+                  className="h-3 w-3 rounded-full"
+                  style={{
+                    backgroundColor:
+                      member.status === "checked_in"
+                        ? getMemberColor(index)
+                        : member.status === "missed"
+                          ? "#C67C74"
+                          : "#D9DDE3",
+                  }}
+                />
+                <span className="text-sm font-medium text-foreground/72">
+                  {member.full_name}
+                  {member.isCurrentUser ? " (You)" : ""}
+                </span>
+              </div>
+
               <span
-                className="h-3 w-3 rounded-full"
-                style={{
-                  backgroundColor:
-                    member.status === "checked_in"
-                      ? getMemberColor(index)
-                      : member.status === "missed"
-                        ? "#C67C74"
-                        : "#D9DDE3",
-                }}
-              />
-              <span className="text-sm font-medium text-foreground/72">
-                {member.full_name}
-                {member.isCurrentUser ? " (You)" : ""}
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs",
+                  member.status === "checked_in"
+                    ? "bg-success/10 text-success"
+                    : member.status === "missed"
+                      ? "bg-accent3/10 text-accent3"
+                      : "bg-foreground/6 text-foreground/48",
+                )}
+              >
+                {member.status === "checked_in" ? <Check className="h-3.5 w-3.5" /> : null}
+                {member.status === "pending" ? <Clock3 className="h-3.5 w-3.5" /> : null}
+                {member.status === "missed" ? <CircleAlert className="h-3.5 w-3.5" /> : null}
+                {member.status === "checked_in"
+                  ? "Complete"
+                  : member.status === "missed"
+                    ? "Missed"
+                    : "Pending"}
               </span>
             </div>
-
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs",
-                member.status === "checked_in"
-                  ? "bg-success/10 text-success"
-                  : member.status === "missed"
-                    ? "bg-accent3/10 text-accent3"
-                    : "bg-foreground/6 text-foreground/48",
-              )}
-            >
-              {member.status === "checked_in" ? <Check className="h-3.5 w-3.5" /> : null}
-              {member.status === "pending" ? <Clock3 className="h-3.5 w-3.5" /> : null}
-              {member.status === "missed" ? <CircleAlert className="h-3.5 w-3.5" /> : null}
-              {member.status === "checked_in"
-                ? "Complete"
-                : member.status === "missed"
-                  ? "Missed"
-                  : "Pending"}
-            </span>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      ) : null}
     </div>
   );
 }

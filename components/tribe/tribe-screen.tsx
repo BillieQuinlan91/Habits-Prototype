@@ -1,41 +1,38 @@
 "use client";
 
-import { useState } from "react";
-import { CircleDot, MessageCircleHeart, Sparkles, Users } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
+import { CircleDot, MessageCircleHeart } from "lucide-react";
 
 import { MemberSheet } from "@/components/tribe/member-sheet";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { applyDemoCheckinOverride } from "@/lib/demo/overrides";
 import { Card } from "@/components/ui/card";
-import { ConstellationWidget } from "@/components/ui/constellation-widget";
-import { Progress } from "@/components/ui/progress";
+import { TeamRing } from "@/components/ui/team-ring";
 import { CircleDashboard } from "@/lib/types";
 
 export function TribeScreen({
   circleDashboard,
+  isDemo = false,
 }: {
   circleDashboard: CircleDashboard | null;
+  isDemo?: boolean;
 }) {
-  const router = useRouter();
+  const dashboard = useMemo(
+    () => (isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard),
+    [circleDashboard, isDemo],
+  );
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
-  const [activity, setActivity] = useState(circleDashboard?.activity ?? []);
-  const selectedMember = circleDashboard?.members.find((member) => member.user_id === selectedUserId) ?? null;
+  const selectedMember = dashboard?.members.find((member) => member.user_id === selectedUserId) ?? null;
 
   function handleSend(payload: { userId: string; reaction: string | null; message: string }) {
-    if (!circleDashboard) {
+    if (!dashboard) {
       return;
     }
 
-    const member = circleDashboard.members.find((entry) => entry.user_id === payload.userId);
-    const description = payload.message
-      ? `You sent ${member?.full_name ?? "a member"} a note: "${payload.message}".`
-      : `You sent ${member?.full_name ?? "a member"} ${payload.reaction ?? "a little support"}.`;
-
-    setActivity((current) => [{ id: `${payload.userId}-${current.length + 1}`, text: description }, ...current].slice(0, 5));
+    const member = dashboard.members.find((entry) => entry.user_id === payload.userId);
+    void member;
   }
 
-  if (!circleDashboard) {
+  if (!dashboard) {
     return (
       <Card>
         <p className="font-medium">Join a circle and the shared rhythm appears here.</p>
@@ -46,50 +43,12 @@ export function TribeScreen({
   return (
     <div className="space-y-5">
       <Card className="space-y-5">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Circle</p>
-            <h2 className="font-display text-3xl font-normal tracking-tight">{circleDashboard.circle.name}</h2>
-          </div>
-          <Badge>{circleDashboard.circleStreak} day streak</Badge>
-        </div>
-        <ConstellationWidget
-          activeCount={Math.max(1, circleDashboard.checkedInCount)}
-          totalCount={Math.max(1, circleDashboard.memberCount)}
-          variant="weekly"
-        />
-        <p className="text-sm text-foreground/58">{circleDashboard.accountabilityMessage}</p>
-      </Card>
-
-      <Card className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today’s board</p>
-            <h3 className="font-display text-2xl font-normal">Who is in?</h3>
-          </div>
-          <span className="text-sm text-foreground/48">
-            {circleDashboard.checkedInCount}/{circleDashboard.memberCount}
-          </span>
-        </div>
-        <Progress value={circleDashboard.completionPercentage * 100} />
-        <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="rounded-2xl bg-surface/70 p-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-foreground/40">Checked in</p>
-            <p className="mt-2 font-medium">{circleDashboard.checkedInCount}</p>
-          </div>
-          <div className="rounded-2xl bg-surface/70 p-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-foreground/40">Waiting</p>
-            <p className="mt-2 font-medium">{circleDashboard.pendingCount}</p>
-          </div>
-          <div className="rounded-2xl bg-surface/70 p-3">
-            <p className="text-xs uppercase tracking-[0.18em] text-foreground/40">Missed</p>
-            <p className="mt-2 font-medium">{circleDashboard.missedCount}</p>
-          </div>
-        </div>
+        <TeamRing members={dashboard.members} eyebrow="Circle" title={dashboard.circle.name} showMembers={false} />
+        <p className="text-sm text-foreground/58">{dashboard.accountabilityMessage}</p>
       </Card>
 
       <div className="space-y-3">
-        {circleDashboard.members.map((member) => (
+        {dashboard.members.map((member) => (
           <button
             key={member.user_id}
             type="button"
@@ -123,48 +82,31 @@ export function TribeScreen({
                   <span>{Math.round(member.percentage * 100)}% this week</span>
                   <span>{member.streak} day streak</span>
                 </div>
+                <p className="text-sm text-foreground/58">
+                  {member.isCurrentUser
+                    ? "This is your status for today."
+                    : member.status === "checked_in"
+                      ? "They’re in. A little celebration would suit."
+                      : member.status === "missed"
+                        ? "They missed today. A kind nudge tomorrow might help."
+                        : "Still waiting. A quick nudge could help."}
+                </p>
                 {member.latestComment ? (
-                  <p className="text-sm text-foreground/58">{member.latestComment}</p>
+                  <p className="text-sm text-foreground/48">{member.latestComment}</p>
                 ) : null}
               </div>
-              <MessageCircleHeart className="h-5 w-5 text-foreground/32" />
+              <div className="flex items-center gap-2">
+                {!member.isCurrentUser ? (
+                  <span className="rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">
+                    {member.status === "checked_in" ? "Celebrate" : "Cheer on"}
+                  </span>
+                ) : null}
+                <MessageCircleHeart className="h-5 w-5 text-foreground/32" />
+              </div>
             </div>
           </button>
         ))}
       </div>
-
-      <Card className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-accent" />
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Support</p>
-            <h3 className="font-display text-2xl font-normal">Circle activity</h3>
-          </div>
-        </div>
-        <div className="space-y-3">
-          {activity.map((entry) => (
-            <div key={entry.id} className="rounded-2xl border border-border/70 bg-surface/50 p-3 text-sm text-foreground/62">
-              {entry.text}
-            </div>
-          ))}
-        </div>
-      </Card>
-
-      <Card className="space-y-4">
-        <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-accent" />
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Pressure</p>
-            <h3 className="font-display text-2xl font-normal">Shared visibility</h3>
-          </div>
-        </div>
-        <p className="text-sm text-foreground/58">
-          Everyone sees today’s status. That small amount of social exposure is the mechanism, not the side effect.
-        </p>
-        <Button variant="secondary" className="w-full" onClick={() => router.push("/today")}>
-          Return to today
-        </Button>
-      </Card>
 
       {selectedMember ? (
         <MemberSheet member={selectedMember} onSend={handleSend} onClose={() => setSelectedUserId(null)} />

@@ -1,27 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ArrowRight, CheckCircle2, LockKeyhole } from "lucide-react";
+import { CheckCircle2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { TeamRing } from "@/components/ui/team-ring";
+import { writeDemoCheckinStatus } from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { CircleDashboard, Profile, TodayHabitItem } from "@/lib/types";
-import { getCommitmentDay } from "@/lib/utils";
+import { Profile, TodayHabitItem } from "@/lib/types";
 
 export function TodayScreen({
   profile,
   habits,
-  circleDashboard,
   isDemo = false,
 }: {
   profile: Profile | null;
   habits: TodayHabitItem[];
-  circleDashboard: CircleDashboard | null;
   isDemo?: boolean;
 }) {
   const router = useRouter();
@@ -32,9 +29,6 @@ export function TodayScreen({
     () => items.find((habit) => habit.is_primary) ?? items[0] ?? null,
     [items],
   );
-  const parkedHabits = Math.max(0, items.length - (focusHabit ? 1 : 0));
-  const commitmentDay = getCommitmentDay(focusHabit?.commitment_start_date);
-  const commitmentLength = focusHabit?.commitment_length_days ?? 7;
 
   function buildNextLog(habit: TodayHabitItem, nextCompleted: boolean, nextProgressValue: number | null) {
     return {
@@ -50,6 +44,7 @@ export function TodayScreen({
 
   async function persistLog(habit: TodayHabitItem, completedValue: boolean, progressValue: number | null) {
     if (isDemo || !hasSupabaseEnv()) {
+      writeDemoCheckinStatus(completedValue ? "checked_in" : "pending");
       return;
     }
 
@@ -67,8 +62,6 @@ export function TodayScreen({
       setFeedback(error.message);
       return;
     }
-
-    router.refresh();
   }
 
   async function toggleHabit() {
@@ -91,6 +84,10 @@ export function TodayScreen({
     setFeedback(null);
     setItems(next);
     await persistLog(focusHabit, nextCompleted, nextProgressValue);
+    if (nextCompleted) {
+      router.push("/tribe");
+      router.refresh();
+    }
   }
 
   async function updateProgress(rawValue: string) {
@@ -126,36 +123,17 @@ export function TodayScreen({
 
   return (
     <div className="space-y-5">
-      <Card className="space-y-5 overflow-hidden">
-        {circleDashboard ? (
-          <TeamRing members={circleDashboard.members} />
-        ) : (
-          <div>
-            <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
-            <h2 className="font-display text-3xl font-normal tracking-tight">Team ring</h2>
-            <p className="mt-2 text-sm text-foreground/58">
-              Your team ring will appear once your group is in place.
-            </p>
-          </div>
-        )}
-      </Card>
-
       <Card className="space-y-4">
         <div>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Current focus</p>
-              <h3 className="font-display text-2xl font-normal">{focusHabit.name}</h3>
-            </div>
-            <span className="rounded-full bg-surface px-3 py-2 text-sm font-medium text-foreground/72">
-              Day {Math.min(commitmentDay, commitmentLength)}/{commitmentLength}
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-foreground/58">
-            Minimum version: {focusHabit.minimum_label ?? "Keep it small enough to repeat."}
-          </p>
-          <p className="mt-2 text-sm text-foreground/48">
-            {profile?.identity_label ?? "One repeated action"} becomes more believable when it shows up again today.
+          <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
+          <h2 className="mt-2 font-display text-3xl font-normal tracking-tight">
+            {profile?.identity_label ?? "I am someone who keeps my promises."}
+          </h2>
+          <p className="mt-3 text-sm text-foreground/58">{focusHabit.name}</p>
+          <p className="mt-1 text-sm text-foreground/48">
+            {focusHabit.minimum_label
+              ? `Minimum version: ${focusHabit.minimum_label}`
+              : "Keep the threshold small enough to repeat."}
           </p>
         </div>
 
@@ -177,27 +155,9 @@ export function TodayScreen({
 
         <Button className="w-full" onClick={() => void toggleHabit()}>
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          {focusHabit.log?.completed ? "Undo today’s check-in" : "Check in"}
-        </Button>
-
-        <Button variant="secondary" className="w-full" onClick={() => router.push("/tribe")}>
-          See your team
-          <ArrowRight className="ml-2 h-4 w-4" />
+          {focusHabit.log?.completed ? "Checked in" : "Check in"}
         </Button>
       </Card>
-
-      {parkedHabits > 0 ? (
-        <Card className="space-y-3">
-          <div className="flex items-center gap-2">
-            <LockKeyhole className="h-4 w-4 text-accent" />
-            <p className="font-medium">Additional habits can wait.</p>
-          </div>
-          <p className="text-sm text-foreground/58">
-            {parkedHabits} other {parkedHabits === 1 ? "habit is" : "habits are"} parked while your first 7-day
-            focus settles in.
-          </p>
-        </Card>
-      ) : null}
 
       {feedback ? (
         <p className="rounded-2xl border border-border bg-card/80 px-4 py-3 text-sm text-foreground/62">
