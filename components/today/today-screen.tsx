@@ -127,12 +127,6 @@ export function TodayScreen({
 
   return (
     <div className="space-y-5">
-      {visibleCircleDashboard ? (
-        <Card className="space-y-5 overflow-hidden">
-          <TeamRing members={visibleCircleDashboard.members} eyebrow="Today" title="Team ring" />
-        </Card>
-      ) : null}
-
       <div className="space-y-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
@@ -198,6 +192,18 @@ export function TodayScreen({
           {focusHabit.log?.completed ? "Checked in" : "Check in"}
         </Button>
       </Card>
+
+      {visibleCircleDashboard ? (
+        <Card className="space-y-4 overflow-hidden">
+          <TeamRing
+            members={visibleCircleDashboard.members}
+            eyebrow="Shared progress"
+            title="Team ring"
+            showMembers={false}
+            compact
+          />
+        </Card>
+      ) : null}
 
       {feedback ? (
         <p className="rounded-2xl border border-border bg-card/80 px-4 py-3 text-sm text-foreground/62">

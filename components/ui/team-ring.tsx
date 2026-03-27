@@ -41,14 +41,16 @@ export function TeamRing({
   eyebrow = "Today",
   title = "Team ring",
   showMembers = true,
+  compact = false,
 }: {
   members: CircleMemberStatus[];
   eyebrow?: string;
   title?: string;
   showMembers?: boolean;
+  compact?: boolean;
 }) {
-  const size = 224;
-  const strokeWidth = 18;
+  const size = compact ? 184 : 224;
+  const strokeWidth = compact ? 14 : 18;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const segmentGap = 10;
@@ -67,8 +69,12 @@ export function TeamRing({
         </div>
       </div>
 
-      <div className="relative mx-auto flex w-full max-w-[260px] items-center justify-center">
-        <svg viewBox={`0 0 ${size} ${size}`} className="h-[224px] w-[224px] -rotate-90 overflow-visible">
+      <div className={cn("relative mx-auto flex w-full items-center justify-center", compact ? "max-w-[220px]" : "max-w-[260px]")}>
+        <svg
+          viewBox={`0 0 ${size} ${size}`}
+          className={cn("-rotate-90 overflow-visible", compact ? "h-[184px] w-[184px]" : "h-[224px] w-[224px]")}
+        >
+          
           {members.map((member, index) => {
             const startOffset = (circumference / Math.max(members.length, 1)) * index;
             const stroke =
@@ -100,8 +106,12 @@ export function TeamRing({
         </svg>
 
         <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-          <p className="font-display text-4xl font-normal tracking-tight">{toPercent(completion)}%</p>
-          <p className="mt-1 max-w-[140px] text-xs text-foreground/52">{waitingOn}</p>
+          <p className={cn("font-display font-normal tracking-tight", compact ? "text-3xl" : "text-4xl")}>
+            {toPercent(completion)}%
+          </p>
+          <p className={cn("mt-1 text-foreground/52", compact ? "max-w-[124px] text-[11px]" : "max-w-[140px] text-xs")}>
+            {waitingOn}
+          </p>
         </div>
       </div>
 
