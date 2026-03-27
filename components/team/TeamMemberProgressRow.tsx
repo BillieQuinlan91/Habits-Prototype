@@ -47,13 +47,18 @@ export function TeamMemberProgressRow({
           style={{ width: `${completionPercent}%`, backgroundColor: color }}
         />
       </div>
-      <div className={cn("mt-2.5", period === "week" ? "flex items-center gap-2" : "grid grid-cols-7 gap-1.5")}>
+      <div
+        className={cn(
+          "mt-2.5 flex items-center",
+          period === "week" ? "gap-2" : "gap-0.5",
+        )}
+      >
         {periodDates.map((date, index) => {
           return (
             <span
               key={`${name}-${index + 1}`}
               className={cn(
-                period === "week" ? "h-1.5 w-1.5" : "h-1.5 w-full min-w-0",
+                period === "week" ? "h-1.5 w-1.5" : "h-1.5 min-w-0 flex-1",
                 "rounded-full",
                 checkedInSet.has(date) ? "bg-foreground/48" : "bg-foreground/14",
               )}
