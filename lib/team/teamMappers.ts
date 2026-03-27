@@ -1,10 +1,19 @@
-import { format, parseISO } from "date-fns";
+import {
+  endOfMonth,
+  endOfWeek,
+  eachDayOfInterval,
+  format,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 
 import { getTeamMemberColor } from "@/lib/team/colors";
 import {
   TeamDailyRingData,
   TeamDayCheckIn,
   TeamMemberProgress,
+  TeamMonthCellData,
   TeamPageData,
 } from "@/lib/types";
 import {
@@ -49,7 +58,7 @@ export function mapTeamPageData(input: {
 }): TeamPageData {
   const memberCount = input.members.length;
   const weekDailyRings = mapWeekDataToDailyRingData(input.weekDays, memberCount);
-  const monthDailyRings = mapWeekDataToDailyRingData(input.monthDays, memberCount);
+  const monthHeatmap = mapMonthDataToHeatmap(input.monthDays, memberCount);
   const members: TeamMemberProgress[] = input.members
     .map((member, index) => {
       const completedDays = member.checkedInDates.filter((date) =>
@@ -74,12 +83,47 @@ export function mapTeamPageData(input: {
     memberCount,
     perfectDays: getPerfectDays(weekDailyRings),
     weeklyCompletionPercent: getTeamCompletionPercent(input.weekDays, memberCount),
-    monthlyPerfectDays: getPerfectDays(monthDailyRings),
+    monthlyPerfectDays: monthHeatmap.filter((day) => day.isInCurrentMonth && day.completionPercent === 100).length,
     monthlyCompletionPercent: getTeamCompletionPercent(input.monthDays, memberCount),
     weekDays: input.weekDays,
     monthDays: input.monthDays,
     weekDailyRings,
-    monthDailyRings,
+    monthHeatmap,
     members,
   };
+}
+
+export function mapMonthDataToHeatmap(
+  monthDays: TeamDayCheckIn[],
+  memberCount: number,
+  todayDate = toDateKey(),
+): TeamMonthCellData[] {
+  if (!monthDays.length) {
+    return [];
+  }
+
+  const monthStart = parseISO(monthDays[0].date);
+  const calendarStart = startOfWeek(startOfMonth(monthStart), { weekStartsOn: 1 });
+  const calendarEnd = endOfWeek(endOfMonth(monthStart), { weekStartsOn: 1 });
+  const lookup = new Map(monthDays.map((day) => [day.date, day]));
+  const currentMonthKey = format(monthStart, "yyyy-MM");
+
+  return eachDayOfInterval({ start: calendarStart, end: calendarEnd }).map((day) => {
+    const date = format(day, "yyyy-MM-dd");
+    const entry = lookup.get(date);
+    const checkedInCount = entry?.checkedInUserIds.length ?? 0;
+    const completionPercent = getDailyCompletionPercent(checkedInCount, memberCount);
+
+    return {
+      date,
+      dayNumber: Number(format(day, "d")),
+      weekdayIndex: Number(format(day, "i")) - 1,
+      completionPercent,
+      checkedInCount,
+      totalCount: memberCount,
+      isToday: date === todayDate,
+      isPerfect: completionPercent === 100,
+      isInCurrentMonth: format(day, "yyyy-MM") === currentMonthKey,
+    };
+  });
 }

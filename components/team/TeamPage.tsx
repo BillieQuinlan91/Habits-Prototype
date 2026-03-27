@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { TeamPageData } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
+import { MonthlyConsistencyHeatmap } from "@/components/team/MonthlyConsistencyHeatmap";
 import { TeamMemberProgressList } from "@/components/team/TeamMemberProgressList";
 import { WeeklyDailyRings } from "@/components/team/WeeklyDailyRings";
 import { WeeklySummaryHeader } from "@/components/team/WeeklySummaryHeader";
@@ -26,7 +27,6 @@ export function TeamPage({
     );
   }
 
-  const visibleRings = view === "week" ? team.weekDailyRings : team.monthDailyRings;
   const perfectDays = view === "week" ? team.perfectDays : team.monthlyPerfectDays;
   const completionPercent = view === "week" ? team.weeklyCompletionPercent : team.monthlyCompletionPercent;
 
@@ -59,7 +59,15 @@ export function TeamPage({
             </button>
           ))}
         </div>
-        <WeeklyDailyRings days={visibleRings} onSelectDay={setSelectedDate} />
+        {view === "week" ? (
+          <WeeklyDailyRings days={team.weekDailyRings} onSelectDay={setSelectedDate} />
+        ) : (
+          <MonthlyConsistencyHeatmap
+            days={team.monthHeatmap}
+            selectedDate={selectedDate}
+            onSelectDay={setSelectedDate}
+          />
+        )}
       </Card>
 
       <Card className="space-y-4">

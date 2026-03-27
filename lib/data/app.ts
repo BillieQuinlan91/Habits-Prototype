@@ -194,7 +194,7 @@ async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
       return {
         userId,
         name: profiles?.find((profile) => profile.id === userId)?.full_name ?? "Member",
-        checkedInDates: weekDates.filter(
+        checkedInDates: monthDates.filter(
           (date) => getCheckinStatusForDate(memberHabits, memberLogs, date) === "checked_in",
         ),
       };

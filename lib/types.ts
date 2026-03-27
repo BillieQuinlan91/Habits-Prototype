@@ -121,6 +121,18 @@ export type TeamDailyRingData = {
   isPerfect?: boolean;
 };
 
+export type TeamMonthCellData = {
+  date: string;
+  dayNumber: number;
+  weekdayIndex: number;
+  completionPercent: number;
+  checkedInCount: number;
+  totalCount: number;
+  isToday?: boolean;
+  isPerfect?: boolean;
+  isInCurrentMonth: boolean;
+};
+
 export type TeamMemberProgress = {
   userId: string;
   name: string;
@@ -144,7 +156,7 @@ export type TeamPageData = {
   weekDays: TeamDayCheckIn[];
   monthDays: TeamDayCheckIn[];
   weekDailyRings: TeamDailyRingData[];
-  monthDailyRings: TeamDailyRingData[];
+  monthHeatmap: TeamMonthCellData[];
   members: TeamMemberProgress[];
 };
 
