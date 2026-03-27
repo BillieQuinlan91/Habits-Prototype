@@ -141,6 +141,7 @@ export type TeamMemberProgress = {
   completedDays: number;
   totalDays: number;
   completionPercent: number;
+  periodDates: string[];
   checkedInDates: string[];
   highlightDates: string[];
 };
@@ -157,7 +158,8 @@ export type TeamPageData = {
   monthDays: TeamDayCheckIn[];
   weekDailyRings: TeamDailyRingData[];
   monthHeatmap: TeamMonthCellData[];
-  members: TeamMemberProgress[];
+  weekMembers: TeamMemberProgress[];
+  monthMembers: TeamMemberProgress[];
 };
 
 export type PostCheckInPopupState =

@@ -57,22 +57,41 @@ export function mapTeamPageData(input: {
   members: Array<{ userId: string; name: string; checkedInDates: string[] }>;
 }): TeamPageData {
   const memberCount = input.members.length;
+  const weekDateKeys = input.weekDays.map((day) => day.date);
+  const monthDateKeys = input.monthDays.map((day) => day.date);
   const weekDailyRings = mapWeekDataToDailyRingData(input.weekDays, memberCount);
   const monthHeatmap = mapMonthDataToHeatmap(input.monthDays, memberCount);
-  const members: TeamMemberProgress[] = input.members
+  const weekMembers: TeamMemberProgress[] = input.members
     .map((member, index) => {
       const completedDays = member.checkedInDates.filter((date) =>
-        input.weekDays.some((day) => day.date === date),
+        weekDateKeys.includes(date),
       ).length;
       return {
         userId: member.userId,
         name: member.name,
         color: getTeamMemberColor(index),
         completedDays,
-        totalDays: input.weekDays.length,
-        completionPercent: getMemberCompletionPercent(completedDays, input.weekDays.length),
-        checkedInDates: member.checkedInDates.filter((date) => input.weekDays.some((day) => day.date === date)),
-        highlightDates: member.checkedInDates,
+        totalDays: weekDateKeys.length,
+        completionPercent: getMemberCompletionPercent(completedDays, weekDateKeys.length),
+        periodDates: weekDateKeys,
+        checkedInDates: member.checkedInDates.filter((date) => weekDateKeys.includes(date)),
+        highlightDates: member.checkedInDates.filter((date) => weekDateKeys.includes(date)),
+      };
+    })
+    .sort((a, b) => b.completionPercent - a.completionPercent || a.name.localeCompare(b.name));
+  const monthMembers: TeamMemberProgress[] = input.members
+    .map((member, index) => {
+      const completedDays = member.checkedInDates.filter((date) => monthDateKeys.includes(date)).length;
+      return {
+        userId: member.userId,
+        name: member.name,
+        color: getTeamMemberColor(index),
+        completedDays,
+        totalDays: monthDateKeys.length,
+        completionPercent: getMemberCompletionPercent(completedDays, monthDateKeys.length),
+        periodDates: monthDateKeys,
+        checkedInDates: member.checkedInDates.filter((date) => monthDateKeys.includes(date)),
+        highlightDates: member.checkedInDates.filter((date) => monthDateKeys.includes(date)),
       };
     })
     .sort((a, b) => b.completionPercent - a.completionPercent || a.name.localeCompare(b.name));
@@ -89,7 +108,8 @@ export function mapTeamPageData(input: {
     monthDays: input.monthDays,
     weekDailyRings,
     monthHeatmap,
-    members,
+    weekMembers,
+    monthMembers,
   };
 }
 

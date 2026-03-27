@@ -30,11 +30,27 @@ export function TeamPage({
 
   const perfectDays = view === "week" ? team.perfectDays : team.monthlyPerfectDays;
   const completionPercent = view === "week" ? team.weeklyCompletionPercent : team.monthlyCompletionPercent;
-  const selectedDateLabel = selectedDate ? format(parseISO(selectedDate), "EEEE d MMMM") : null;
-  const memberTitle = selectedDateLabel ? `Who missed ${selectedDateLabel}` : "This week, member by member";
-  const memberSupporting = selectedDateLabel
-    ? "Highlighted rows below are the people who did not check in that day."
-    : "A weekly view of how each person is contributing to the shared run.";
+  const selectedDateLabel = selectedDate ? format(parseISO(selectedDate), "EEEE do MMMM") : null;
+  const allMembers = view === "week" ? team.weekMembers : team.monthMembers;
+  const missedMembers =
+    view === "month" && selectedDate
+      ? allMembers.filter((member) => !member.highlightDates.includes(selectedDate))
+      : allMembers;
+  const isPerfectSelectedMonthDay = view === "month" && !!selectedDate && missedMembers.length === 0;
+  const memberTitle = isPerfectSelectedMonthDay
+    ? `Everyone checked in on ${selectedDateLabel}`
+    : selectedDateLabel && view === "month"
+      ? `Who missed ${selectedDateLabel}`
+      : view === "month"
+        ? "This month, member by member"
+        : "This week, member by member";
+  const memberSupporting = isPerfectSelectedMonthDay
+    ? "A full team day. Nothing missing here."
+    : selectedDateLabel && view === "month"
+      ? "Only the people who missed that day are shown below."
+      : view === "month"
+        ? "A month-wide view of how each person is contributing to the shared run."
+        : "A weekly view of how each person is contributing to the shared run.";
 
   return (
     <div className="space-y-5">
@@ -82,7 +98,13 @@ export function TeamPage({
           <h3 className="font-display text-2xl font-normal">{memberTitle}</h3>
           <p className="mt-1 text-sm text-foreground/58">{memberSupporting}</p>
         </div>
-        <TeamMemberProgressList members={team.members} selectedDate={selectedDate} />
+        <TeamMemberProgressList
+          members={missedMembers}
+          period={view}
+          selectedDate={selectedDate}
+          emptyStateTitle={isPerfectSelectedMonthDay ? memberTitle : undefined}
+          emptyStateBody={isPerfectSelectedMonthDay ? memberSupporting : undefined}
+        />
       </Card>
     </div>
   );

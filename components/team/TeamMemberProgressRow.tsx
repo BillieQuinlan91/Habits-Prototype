@@ -8,6 +8,8 @@ export function TeamMemberProgressRow({
   completedDays,
   totalDays,
   completionPercent,
+  period,
+  periodDates,
   checkedInDates,
   isHighlighted,
   helperText,
@@ -17,10 +19,14 @@ export function TeamMemberProgressRow({
   completedDays: number;
   totalDays: number;
   completionPercent: number;
+  period: "week" | "month";
+  periodDates: string[];
   checkedInDates: string[];
   isHighlighted?: boolean;
   helperText?: string;
 }) {
+  const checkedInSet = new Set(checkedInDates);
+
   return (
     <div
       className={cn(
@@ -43,13 +49,16 @@ export function TeamMemberProgressRow({
           style={{ width: `${completionPercent}%`, backgroundColor: color }}
         />
       </div>
-      <div className="mt-3 flex items-center gap-2">
-        {Array.from({ length: totalDays }, (_, index) => {
-          const date = checkedInDates[index];
+      <div className={cn("mt-3", period === "week" ? "flex items-center gap-2" : "grid grid-cols-7 gap-1.5")}>
+        {periodDates.map((date, index) => {
           return (
             <span
               key={`${name}-${index + 1}`}
-              className={cn("h-1.5 w-1.5 rounded-full", date ? "bg-foreground/48" : "bg-foreground/14")}
+              className={cn(
+                period === "week" ? "h-1.5 w-1.5" : "h-1.5 w-full min-w-0",
+                "rounded-full",
+                checkedInSet.has(date) ? "bg-foreground/48" : "bg-foreground/14",
+              )}
             />
           );
         })}
