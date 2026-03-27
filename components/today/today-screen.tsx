@@ -22,7 +22,7 @@ import { cn, getWeekWindow } from "@/lib/utils";
 
 type CheckInAcknowledgmentState = "idle" | "acknowledging";
 
-const ACKNOWLEDGMENT_DELAY_MS = 2000;
+const ACKNOWLEDGMENT_DELAY_MS = 1500;
 const CONFETTI_COLORS = ["bg-success", "bg-accent", "bg-accent2", "bg-[#F0CDA8]", "bg-white/80"];
 const CONFETTI_PIECES = [
   { left: "6%", delay: 0, rotate: -10 },
