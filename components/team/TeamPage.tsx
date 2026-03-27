@@ -1,5 +1,6 @@
 "use client";
 
+import { format, parseISO } from "date-fns";
 import { useState } from "react";
 
 import { Card } from "@/components/ui/card";
@@ -29,6 +30,11 @@ export function TeamPage({
 
   const perfectDays = view === "week" ? team.perfectDays : team.monthlyPerfectDays;
   const completionPercent = view === "week" ? team.weeklyCompletionPercent : team.monthlyCompletionPercent;
+  const selectedDateLabel = selectedDate ? format(parseISO(selectedDate), "EEEE d MMMM") : null;
+  const memberTitle = selectedDateLabel ? `Who missed ${selectedDateLabel}` : "This week, member by member";
+  const memberSupporting = selectedDateLabel
+    ? "Highlighted rows below are the people who did not check in that day."
+    : "A weekly view of how each person is contributing to the shared run.";
 
   return (
     <div className="space-y-5">
@@ -73,7 +79,8 @@ export function TeamPage({
       <Card className="space-y-4">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Individual contribution</p>
-          <h3 className="font-display text-2xl font-normal">This week, member by member</h3>
+          <h3 className="font-display text-2xl font-normal">{memberTitle}</h3>
+          <p className="mt-1 text-sm text-foreground/58">{memberSupporting}</p>
         </div>
         <TeamMemberProgressList members={team.members} selectedDate={selectedDate} />
       </Card>
