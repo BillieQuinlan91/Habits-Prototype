@@ -1,10 +1,10 @@
 export const TEAM_MEMBER_COLORS = [
-  "#2447D6",
-  "#355BE2",
-  "#4A72EE",
-  "#6790F5",
-  "#8AAEF5",
-  "#B2CAF8",
+  "#1736B8",
+  "#2E54D1",
+  "#4A78EA",
+  "#73A0F5",
+  "#A1C4FA",
+  "#D1E2FE",
 ] as const;
 
 export function getTeamMemberColor(index: number) {
