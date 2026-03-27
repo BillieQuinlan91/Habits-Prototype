@@ -24,6 +24,7 @@ export default async function TodayPage() {
       <TodayScreen
         profile={bootstrap.profile}
         habits={bootstrap.habits}
+        circleDashboard={bootstrap.circleDashboard}
         isDemo={bootstrap.isDemo}
       />
     </AppShell>

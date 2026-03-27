@@ -106,6 +106,43 @@ export type CircleDashboard = {
   activity: Array<{ id: string; text: string }>;
 };
 
+export type TeamDayCheckIn = {
+  date: string;
+  checkedInUserIds: string[];
+};
+
+export type TeamDailyRingData = {
+  date: string;
+  dayLabel: string;
+  completionPercent: number;
+  checkedInCount: number;
+  totalCount: number;
+  isToday?: boolean;
+  isPerfect?: boolean;
+};
+
+export type TeamMemberProgress = {
+  userId: string;
+  name: string;
+  avatarUrl?: string;
+  color: string;
+  completedDays: number;
+  totalDays: number;
+  completionPercent: number;
+  checkedInDates: string[];
+};
+
+export type TeamPageData = {
+  teamId: string;
+  teamName: string;
+  memberCount: number;
+  perfectDays: number;
+  weeklyCompletionPercent: number;
+  days: TeamDayCheckIn[];
+  dailyRings: TeamDailyRingData[];
+  members: TeamMemberProgress[];
+};
+
 export type OrganizationRanking = {
   tribeId: string;
   tribeName: string;

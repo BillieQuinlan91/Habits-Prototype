@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/providers/app-shell";
-import { TribeScreen } from "@/components/tribe/tribe-screen";
+import { TeamPage } from "@/components/team/TeamPage";
 import { getAppBootstrap } from "@/lib/data/app";
 
 export default async function TribePage() {
@@ -21,7 +21,7 @@ export default async function TribePage() {
 
   return (
     <AppShell activeTab="tribe" isDemo={bootstrap.isDemo} showFeedbackLink>
-      <TribeScreen circleDashboard={bootstrap.circleDashboard} isDemo={bootstrap.isDemo} />
+      <TeamPage team={bootstrap.teamPageData} />
     </AppShell>
   );
 }

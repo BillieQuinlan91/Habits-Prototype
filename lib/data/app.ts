@@ -8,6 +8,7 @@ import {
   demoTribes,
   demoUserHabits,
 } from "@/lib/demo/data";
+import { mapTeamPageData } from "@/lib/team/teamMappers";
 import { calculateStreak, calculateUserWeeklyScore } from "@/lib/score";
 import { isForcedDemoMode } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -19,11 +20,12 @@ import {
   NotificationPreference,
   OrganizationRanking,
   Profile,
+  TeamPageData,
   TodayHabitItem,
   Tribe,
   UserHabit,
 } from "@/lib/types";
-import { getWeekWindow, toDateKey } from "@/lib/utils";
+import { getWeekDateKeys, getWeekWindow, toDateKey } from "@/lib/utils";
 
 type AppBootstrap = {
   profile: Profile | null;
@@ -33,6 +35,7 @@ type AppBootstrap = {
   organizations: { id: string; name: string }[];
   tribes: Tribe[];
   circleDashboard: CircleDashboard | null;
+  teamPageData: TeamPageData | null;
   organizationRankings: OrganizationRanking[];
   integrationInterests: IntegrationInterest[];
   notificationPreferences: NotificationPreference | null;
@@ -63,6 +66,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       organizations: demoOrganizations,
       tribes: [],
       circleDashboard: null,
+      teamPageData: null,
       organizationRankings: [],
       integrationInterests: [],
       notificationPreferences: null,
@@ -114,6 +118,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
 
   const profile = (profileResult.data as Profile | null) ?? null;
   const circleDashboard = profile?.tribe_id ? await getCircleDashboard(profile.tribe_id, user.id) : null;
+  const teamPageData = profile?.tribe_id ? await getTeamPageData(profile.tribe_id) : null;
 
   return {
     profile,
@@ -129,11 +134,65 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
         : null,
     })),
     circleDashboard,
+    teamPageData,
     organizationRankings: [],
     integrationInterests: (integrationResult.data ?? []) as IntegrationInterest[],
     notificationPreferences: (notificationResult.data as NotificationPreference | null) ?? null,
     isDemo: false,
   };
+}
+
+async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) {
+    return getDemoBootstrap().teamPageData;
+  }
+
+  const weekDates = getWeekDateKeys();
+  const weekStart = weekDates[0];
+
+  const [{ data: circle }, { data: memberRows }] = await Promise.all([
+    supabase.from("tribes").select("*").eq("id", tribeId).single(),
+    supabase.from("tribe_members").select("user_id").eq("tribe_id", tribeId),
+  ]);
+
+  if (!circle || !memberRows?.length) {
+    return null;
+  }
+
+  const userIds = memberRows.map((member) => member.user_id);
+  const [{ data: profiles }, { data: habits }, { data: logs }] = await Promise.all([
+    supabase.from("profiles").select("id, full_name").in("id", userIds),
+    supabase.from("user_habits").select("*").in("user_id", userIds).eq("is_active", true),
+    supabase.from("habit_logs").select("*").in("user_id", userIds).gte("log_date", weekStart),
+  ]);
+
+  const allHabits = (habits ?? []) as UserHabit[];
+  const allLogs = (logs ?? []) as HabitLog[];
+
+  return mapTeamPageData({
+    teamId: circle.id,
+    teamName: circle.name,
+    days: weekDates.map((date) => ({
+      date,
+      checkedInUserIds: userIds.filter((userId) => {
+        const memberHabits = allHabits.filter((habit) => habit.user_id === userId);
+        const memberLogs = allLogs.filter((log) => log.user_id === userId);
+        return getCheckinStatusForDate(memberHabits, memberLogs, date) === "checked_in";
+      }),
+    })),
+    members: userIds.map((userId) => {
+      const memberHabits = allHabits.filter((habit) => habit.user_id === userId);
+      const memberLogs = allLogs.filter((log) => log.user_id === userId);
+      return {
+        userId,
+        name: profiles?.find((profile) => profile.id === userId)?.full_name ?? "Member",
+        checkedInDates: weekDates.filter(
+          (date) => getCheckinStatusForDate(memberHabits, memberLogs, date) === "checked_in",
+        ),
+      };
+    }),
+  });
 }
 
 async function getCircleDashboard(tribeId: string, currentUserId: string): Promise<CircleDashboard | null> {
@@ -411,6 +470,31 @@ function getDemoBootstrap(): AppBootstrap {
         { id: "a2", text: "Jay received a note: \"A short start is still a start.\""},
       ],
     },
+    teamPageData: mapTeamPageData({
+      teamId: demoTribes[0].id,
+      teamName: demoTribes[0].name,
+      days: getWeekDateKeys().map((date) => ({
+        date,
+        checkedInUserIds:
+          date === "2026-03-24"
+            ? ["u2", "u4"]
+            : date === "2026-03-23"
+              ? [demoProfile.id, "u2", "u4"]
+              : date === "2026-03-22"
+                ? ["u2"]
+                : date === "2026-03-21"
+                  ? [demoProfile.id, "u2", "u4"]
+                  : date === "2026-03-20"
+                    ? [demoProfile.id, "u2", "u3", "u4"]
+                    : [],
+      })),
+      members: [
+        { userId: demoProfile.id, name: "Mark", checkedInDates: ["2026-03-20", "2026-03-21", "2026-03-23"] },
+        { userId: "u2", name: "Ariana", checkedInDates: ["2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24"] },
+        { userId: "u3", name: "Jay", checkedInDates: ["2026-03-20"] },
+        { userId: "u4", name: "Mina", checkedInDates: ["2026-03-20", "2026-03-21", "2026-03-23", "2026-03-24"] },
+      ],
+    }),
     organizationRankings: [],
     integrationInterests: [
       { id: "i1", user_id: demoProfile.id, integration_name: "Apple Health" },

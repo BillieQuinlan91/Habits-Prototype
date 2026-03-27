@@ -2,33 +2,38 @@
 
 import { useMemo, useState } from "react";
 import { CheckCircle2, LockKeyhole, Target } from "lucide-react";
-import { useRouter } from "next/navigation";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { writeDemoCheckinStatus } from "@/lib/demo/overrides";
+import { TeamRing } from "@/components/ui/team-ring";
+import { applyDemoCheckinOverride, writeDemoCheckinStatus } from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { Profile, TodayHabitItem } from "@/lib/types";
+import { CircleDashboard, Profile, TodayHabitItem } from "@/lib/types";
 
 export function TodayScreen({
   profile,
   habits,
+  circleDashboard,
   isDemo = false,
 }: {
   profile: Profile | null;
   habits: TodayHabitItem[];
+  circleDashboard: CircleDashboard | null;
   isDemo?: boolean;
 }) {
-  const router = useRouter();
   const [items, setItems] = useState(habits);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const focusHabit = useMemo(
     () => items.find((habit) => habit.is_primary) ?? items[0] ?? null,
     [items],
+  );
+  const visibleCircleDashboard = useMemo(
+    () => (isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard),
+    [circleDashboard, isDemo],
   );
 
   function buildNextLog(habit: TodayHabitItem, nextCompleted: boolean, nextProgressValue: number | null) {
@@ -63,6 +68,8 @@ export function TodayScreen({
       setFeedback(error.message);
       return;
     }
+
+    window.location.reload();
   }
 
   async function toggleHabit() {
@@ -85,10 +92,6 @@ export function TodayScreen({
     setFeedback(null);
     setItems(next);
     await persistLog(focusHabit, nextCompleted, nextProgressValue);
-    if (nextCompleted) {
-      router.push("/tribe");
-      router.refresh();
-    }
   }
 
   async function updateProgress(rawValue: string) {
@@ -124,6 +127,12 @@ export function TodayScreen({
 
   return (
     <div className="space-y-5">
+      {visibleCircleDashboard ? (
+        <Card className="space-y-5 overflow-hidden">
+          <TeamRing members={visibleCircleDashboard.members} eyebrow="Today" title="Team ring" />
+        </Card>
+      ) : null}
+
       <div className="space-y-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
