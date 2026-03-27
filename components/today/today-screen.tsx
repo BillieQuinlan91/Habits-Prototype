@@ -22,7 +22,8 @@ import { cn, getWeekWindow } from "@/lib/utils";
 
 type CheckInAcknowledgmentState = "idle" | "acknowledging";
 
-const ACKNOWLEDGMENT_DELAY_MS = 850;
+const ACKNOWLEDGMENT_DELAY_MS = 2000;
+const CONFETTI_COLORS = ["bg-success", "bg-accent", "bg-accent2", "bg-[#F0CDA8]", "bg-white/80"];
 
 export function TodayScreen({
   profile,
@@ -236,9 +237,26 @@ export function TodayScreen({
 
         {isAcknowledging ? (
           <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
+            <div className="pointer-events-none absolute inset-0">
+              {CONFETTI_COLORS.map((tone, index) => (
+                <span
+                  key={`${tone}-${index}`}
+                  className={cn(
+                    "absolute top-0 h-3 w-2 rounded-full opacity-0 animate-confettiFall motion-reduce:hidden",
+                    tone,
+                  )}
+                  style={{
+                    left: `${8 + index * 18}%`,
+                    animationDelay: `${index * 110}ms`,
+                    transform: `rotate(${index * 22}deg)`,
+                  }}
+                />
+              ))}
+            </div>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="absolute h-24 w-24 rounded-full border border-success/30 animate-burst" />
-              <span className="absolute h-32 w-32 rounded-full border border-success/15 animate-burst [animation-delay:120ms]" />
+              <span className="absolute h-28 w-28 rounded-full border border-success/30 animate-burst" />
+              <span className="absolute h-36 w-36 rounded-full border border-success/15 animate-burst [animation-delay:120ms]" />
+              <span className="absolute h-44 w-44 rounded-full border border-accent/12 animate-burst [animation-delay:220ms] motion-reduce:hidden" />
             </div>
             <p className="relative text-sm font-medium text-success">That counts. You showed up again today.</p>
           </div>
