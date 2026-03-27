@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
@@ -247,12 +246,6 @@ export function ProfileScreen({
           {profile?.tribe?.name ? <Badge>{profile.tribe.name}</Badge> : null}
           {profile?.organization?.name ? <Badge>{profile.organization.name}</Badge> : null}
         </div>
-        <ConstellationWidget
-          activeCount={Math.min(habitItems.length + 2, 7)}
-          totalCount={7}
-          large
-          variant="profile"
-        />
       </Card>
 
       {focusHabit ? (

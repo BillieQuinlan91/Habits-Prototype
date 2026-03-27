@@ -1,9 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, LockKeyhole, Target } from "lucide-react";
 import { useRouter } from "next/navigation";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -123,18 +124,48 @@ export function TodayScreen({
 
   return (
     <div className="space-y-5">
-      <Card className="space-y-4">
+      <div className="space-y-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
-          <h2 className="mt-2 font-display text-3xl font-normal tracking-tight">
+          <h2 className="mt-2 font-display text-3xl font-normal tracking-tight">Keep the promise.</h2>
+        </div>
+
+        <Card className="space-y-3 bg-surface/70">
+          <div className="flex items-center gap-2 text-foreground/40">
+            <LockKeyhole className="h-4 w-4 text-accent" />
+            <p className="text-xs uppercase tracking-[0.2em]">Identity</p>
+          </div>
+          <p className="font-display text-2xl font-normal leading-tight tracking-tight">
             {profile?.identity_label ?? "I am someone who keeps my promises."}
-          </h2>
-          <p className="mt-3 text-sm text-foreground/58">{focusHabit.name}</p>
-          <p className="mt-1 text-sm text-foreground/48">
-            {focusHabit.minimum_label
-              ? `Minimum version: ${focusHabit.minimum_label}`
-              : "Keep the threshold small enough to repeat."}
           </p>
+        </Card>
+      </div>
+
+      <Card className="space-y-4">
+        <div className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2 text-foreground/40">
+              <Target className="h-4 w-4 text-accent" />
+              <p className="text-xs uppercase tracking-[0.2em]">Current commitment</p>
+            </div>
+            <Badge>{focusHabit.log?.completed ? "Done today" : "Still to do"}</Badge>
+          </div>
+
+          <div className="rounded-[28px] border border-border/80 bg-card p-5">
+            <p className="font-display text-3xl font-normal tracking-tight">{focusHabit.name}</p>
+            <p className="mt-3 text-sm text-foreground/48">
+              This is the one thing that counts today.
+            </p>
+          </div>
+
+          <div className="rounded-2xl bg-surface/70 px-4 py-3">
+            <p className="text-xs uppercase tracking-[0.18em] text-foreground/38">Minimum version</p>
+            <p className="mt-1 text-sm text-foreground/62">
+              {focusHabit.minimum_label
+                ? focusHabit.minimum_label
+                : "Keep the threshold small enough to repeat."}
+            </p>
+          </div>
         </div>
 
         {focusHabit.type === "measurable" ? (
