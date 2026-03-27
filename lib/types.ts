@@ -130,6 +130,7 @@ export type TeamMemberProgress = {
   totalDays: number;
   completionPercent: number;
   checkedInDates: string[];
+  highlightDates: string[];
 };
 
 export type TeamPageData = {
@@ -138,8 +139,12 @@ export type TeamPageData = {
   memberCount: number;
   perfectDays: number;
   weeklyCompletionPercent: number;
-  days: TeamDayCheckIn[];
-  dailyRings: TeamDailyRingData[];
+  monthlyPerfectDays: number;
+  monthlyCompletionPercent: number;
+  weekDays: TeamDayCheckIn[];
+  monthDays: TeamDayCheckIn[];
+  weekDailyRings: TeamDailyRingData[];
+  monthDailyRings: TeamDailyRingData[];
   members: TeamMemberProgress[];
 };
 

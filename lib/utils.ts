@@ -1,5 +1,16 @@
 import { clsx, type ClassValue } from "clsx";
-import { addDays, differenceInCalendarDays, endOfWeek, format, isSunday, parseISO, startOfWeek } from "date-fns";
+import {
+  addDays,
+  differenceInCalendarDays,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSunday,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
 import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
@@ -16,6 +27,13 @@ export function getWeekWindow(date = new Date()) {
 export function getWeekDateKeys(date = new Date()) {
   const { start } = getWeekWindow(date);
   return Array.from({ length: 7 }, (_, index) => toDateKey(addDays(start, index)));
+}
+
+export function getMonthDateKeys(date = new Date()) {
+  return eachDayOfInterval({
+    start: startOfMonth(date),
+    end: endOfMonth(date),
+  }).map((day) => toDateKey(day));
 }
 
 export function toDateKey(date = new Date()) {

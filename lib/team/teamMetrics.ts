@@ -20,7 +20,7 @@ export function getPerfectDays(days: TeamDailyRingData[]) {
   return days.filter((day) => day.completionPercent === 100).length;
 }
 
-export function getWeeklyTeamCompletionPercent(days: TeamDayCheckIn[], memberCount: number) {
+export function getTeamCompletionPercent(days: TeamDayCheckIn[], memberCount: number) {
   const totalCheckIns = days.reduce((sum, day) => sum + day.checkedInUserIds.length, 0);
   const totalPossible = memberCount * days.length;
 

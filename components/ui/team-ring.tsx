@@ -2,21 +2,9 @@
 
 import { Check, CircleAlert, Clock3 } from "lucide-react";
 
+import { getTeamMemberColor } from "@/lib/team/colors";
 import { CircleMemberStatus } from "@/lib/types";
 import { cn, toPercent } from "@/lib/utils";
-
-const MEMBER_COLORS = [
-  "#6C8CF5",
-  "#6FAF8F",
-  "#FF8A7A",
-  "#7C9A92",
-  "#9C7EE8",
-  "#E2A64B",
-] as const;
-
-function getMemberColor(index: number) {
-  return MEMBER_COLORS[index % MEMBER_COLORS.length];
-}
 
 function describeWaitingOn(members: CircleMemberStatus[]) {
   const remaining = members.filter((member) => member.status !== "checked_in").map((member) => member.full_name);
@@ -79,7 +67,7 @@ export function TeamRing({
             const startOffset = (circumference / Math.max(members.length, 1)) * index;
             const stroke =
               member.status === "checked_in"
-                ? getMemberColor(index)
+                ? getTeamMemberColor(index)
                 : member.status === "missed"
                   ? "#C67C74"
                   : "#D9DDE3";
@@ -128,7 +116,7 @@ export function TeamRing({
                   style={{
                     backgroundColor:
                       member.status === "checked_in"
-                        ? getMemberColor(index)
+                        ? getTeamMemberColor(index)
                         : member.status === "missed"
                           ? "#C67C74"
                           : "#D9DDE3",

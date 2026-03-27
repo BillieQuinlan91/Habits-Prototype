@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Card } from "@/components/ui/card";
 import { TeamPageData } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 import { TeamMemberProgressList } from "@/components/team/TeamMemberProgressList";
 import { WeeklyDailyRings } from "@/components/team/WeeklyDailyRings";
@@ -14,6 +15,7 @@ export function TeamPage({
 }: {
   team: TeamPageData | null;
 }) {
+  const [view, setView] = useState<"week" | "month">("week");
   const [selectedDate, setSelectedDate] = useState<string | undefined>(undefined);
 
   if (!team) {
@@ -24,15 +26,40 @@ export function TeamPage({
     );
   }
 
+  const visibleRings = view === "week" ? team.weekDailyRings : team.monthDailyRings;
+  const perfectDays = view === "week" ? team.perfectDays : team.monthlyPerfectDays;
+  const completionPercent = view === "week" ? team.weeklyCompletionPercent : team.monthlyCompletionPercent;
+
   return (
     <div className="space-y-5">
       <WeeklySummaryHeader
-        perfectDays={team.perfectDays}
-        weeklyCompletionPercent={team.weeklyCompletionPercent}
+        perfectDays={perfectDays}
+        completionPercent={completionPercent}
+        periodLabel={view}
       />
 
       <Card className="space-y-4 overflow-hidden">
-        <WeeklyDailyRings days={team.dailyRings} onSelectDay={setSelectedDate} />
+        <div className="flex gap-2 px-4 pt-4">
+          {(["week", "month"] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                setView(option);
+                setSelectedDate(undefined);
+              }}
+              className={cn(
+                "rounded-full border px-4 py-2 text-sm transition",
+                view === option
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border bg-card text-foreground/56",
+              )}
+            >
+              {option === "week" ? "Week" : "Month"}
+            </button>
+          ))}
+        </div>
+        <WeeklyDailyRings days={visibleRings} onSelectDay={setSelectedDate} />
       </Card>
 
       <Card className="space-y-4">

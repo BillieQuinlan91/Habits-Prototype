@@ -2,22 +2,24 @@
 
 export function WeeklySummaryHeader({
   perfectDays,
-  weeklyCompletionPercent,
+  completionPercent,
+  periodLabel,
 }: {
   perfectDays: number;
-  weeklyCompletionPercent: number;
+  completionPercent: number;
+  periodLabel: "week" | "month";
 }) {
   const title =
     perfectDays >= 5
-      ? `${perfectDays} perfect days this week`
+      ? `${perfectDays} perfect days this ${periodLabel}`
       : perfectDays >= 2
         ? `${perfectDays} perfect days so far`
-        : `${weeklyCompletionPercent}% team completion this week`;
+        : `${completionPercent}% team completion this ${periodLabel}`;
 
   const supporting =
     perfectDays > 0
-      ? "Strong week. The shape of it is visible."
-      : "A useful view of the week so far.";
+      ? `Strong ${periodLabel}. The shape of it is visible.`
+      : `A useful view of the ${periodLabel} so far.`;
 
   return (
     <div className="space-y-2">

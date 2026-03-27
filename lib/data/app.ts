@@ -25,7 +25,7 @@ import {
   Tribe,
   UserHabit,
 } from "@/lib/types";
-import { getWeekDateKeys, getWeekWindow, toDateKey } from "@/lib/utils";
+import { getMonthDateKeys, getWeekDateKeys, getWeekWindow, toDateKey } from "@/lib/utils";
 
 type AppBootstrap = {
   profile: Profile | null;
@@ -75,8 +75,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
   }
 
   const today = toDateKey();
-  const { start } = getWeekWindow();
-  const weekStart = format(start, "yyyy-MM-dd");
+  const monthStart = getMonthDateKeys()[0];
 
   const [
     profileResult,
@@ -100,7 +99,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       .eq("is_active", true)
       .order("is_primary", { ascending: false })
       .order("created_at"),
-    supabase.from("habit_logs").select("*").eq("user_id", user.id).gte("log_date", weekStart),
+    supabase.from("habit_logs").select("*").eq("user_id", user.id).gte("log_date", monthStart),
     supabase.from("habit_templates").select("*").order("sort_order"),
     supabase.from("tribe_member_counts").select("*").order("name"),
     supabase.from("organizations").select("*").order("name"),
@@ -149,7 +148,7 @@ async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
   }
 
   const weekDates = getWeekDateKeys();
-  const weekStart = weekDates[0];
+  const monthDates = getMonthDateKeys();
 
   const [{ data: circle }, { data: memberRows }] = await Promise.all([
     supabase.from("tribes").select("*").eq("id", tribeId).single(),
@@ -164,7 +163,7 @@ async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
   const [{ data: profiles }, { data: habits }, { data: logs }] = await Promise.all([
     supabase.from("profiles").select("id, full_name").in("id", userIds),
     supabase.from("user_habits").select("*").in("user_id", userIds).eq("is_active", true),
-    supabase.from("habit_logs").select("*").in("user_id", userIds).gte("log_date", weekStart),
+    supabase.from("habit_logs").select("*").in("user_id", userIds).gte("log_date", monthDates[0]),
   ]);
 
   const allHabits = (habits ?? []) as UserHabit[];
@@ -173,7 +172,15 @@ async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
   return mapTeamPageData({
     teamId: circle.id,
     teamName: circle.name,
-    days: weekDates.map((date) => ({
+    weekDays: weekDates.map((date) => ({
+      date,
+      checkedInUserIds: userIds.filter((userId) => {
+        const memberHabits = allHabits.filter((habit) => habit.user_id === userId);
+        const memberLogs = allLogs.filter((log) => log.user_id === userId);
+        return getCheckinStatusForDate(memberHabits, memberLogs, date) === "checked_in";
+      }),
+    })),
+    monthDays: monthDates.map((date) => ({
       date,
       checkedInUserIds: userIds.filter((userId) => {
         const memberHabits = allHabits.filter((habit) => habit.user_id === userId);
@@ -473,7 +480,7 @@ function getDemoBootstrap(): AppBootstrap {
     teamPageData: mapTeamPageData({
       teamId: demoTribes[0].id,
       teamName: demoTribes[0].name,
-      days: getWeekDateKeys().map((date) => ({
+      weekDays: getWeekDateKeys().map((date) => ({
         date,
         checkedInUserIds:
           date === "2026-03-24"
@@ -486,6 +493,21 @@ function getDemoBootstrap(): AppBootstrap {
                   ? [demoProfile.id, "u2", "u4"]
                   : date === "2026-03-20"
                     ? [demoProfile.id, "u2", "u3", "u4"]
+                    : [],
+      })),
+      monthDays: getMonthDateKeys(new Date("2026-03-24")).map((date) => ({
+        date,
+        checkedInUserIds:
+          date === "2026-03-20"
+            ? [demoProfile.id, "u2", "u3", "u4"]
+            : date === "2026-03-21"
+              ? [demoProfile.id, "u2", "u4"]
+              : date === "2026-03-22"
+                ? ["u2"]
+                : date === "2026-03-23"
+                  ? [demoProfile.id, "u2", "u4"]
+                  : date === "2026-03-24"
+                    ? ["u2", "u4"]
                     : [],
       })),
       members: [

@@ -1,5 +1,6 @@
 import { format, parseISO } from "date-fns";
 
+import { getTeamMemberColor } from "@/lib/team/colors";
 import {
   TeamDailyRingData,
   TeamDayCheckIn,
@@ -10,15 +11,9 @@ import {
   getDailyCompletionPercent,
   getMemberCompletionPercent,
   getPerfectDays,
-  getWeeklyTeamCompletionPercent,
+  getTeamCompletionPercent,
 } from "@/lib/team/teamMetrics";
 import { toDateKey } from "@/lib/utils";
-
-const MEMBER_COLORS = ["#6C8CF5", "#6FAF8F", "#FF8A7A", "#7C9A92", "#9C7EE8", "#E2A64B"] as const;
-
-export function getTeamMemberColor(index: number) {
-  return MEMBER_COLORS[index % MEMBER_COLORS.length];
-}
 
 export function formatDayLabel(date: string) {
   return format(parseISO(date), "EEE");
@@ -48,22 +43,27 @@ export function mapWeekDataToDailyRingData(
 export function mapTeamPageData(input: {
   teamId: string;
   teamName: string;
-  days: TeamDayCheckIn[];
+  weekDays: TeamDayCheckIn[];
+  monthDays: TeamDayCheckIn[];
   members: Array<{ userId: string; name: string; checkedInDates: string[] }>;
 }): TeamPageData {
   const memberCount = input.members.length;
-  const dailyRings = mapWeekDataToDailyRingData(input.days, memberCount);
+  const weekDailyRings = mapWeekDataToDailyRingData(input.weekDays, memberCount);
+  const monthDailyRings = mapWeekDataToDailyRingData(input.monthDays, memberCount);
   const members: TeamMemberProgress[] = input.members
     .map((member, index) => {
-      const completedDays = member.checkedInDates.length;
+      const completedDays = member.checkedInDates.filter((date) =>
+        input.weekDays.some((day) => day.date === date),
+      ).length;
       return {
         userId: member.userId,
         name: member.name,
         color: getTeamMemberColor(index),
         completedDays,
-        totalDays: input.days.length,
-        completionPercent: getMemberCompletionPercent(completedDays, input.days.length),
-        checkedInDates: member.checkedInDates,
+        totalDays: input.weekDays.length,
+        completionPercent: getMemberCompletionPercent(completedDays, input.weekDays.length),
+        checkedInDates: member.checkedInDates.filter((date) => input.weekDays.some((day) => day.date === date)),
+        highlightDates: member.checkedInDates,
       };
     })
     .sort((a, b) => b.completionPercent - a.completionPercent || a.name.localeCompare(b.name));
@@ -72,10 +72,14 @@ export function mapTeamPageData(input: {
     teamId: input.teamId,
     teamName: input.teamName,
     memberCount,
-    perfectDays: getPerfectDays(dailyRings),
-    weeklyCompletionPercent: getWeeklyTeamCompletionPercent(input.days, memberCount),
-    days: input.days,
-    dailyRings,
+    perfectDays: getPerfectDays(weekDailyRings),
+    weeklyCompletionPercent: getTeamCompletionPercent(input.weekDays, memberCount),
+    monthlyPerfectDays: getPerfectDays(monthDailyRings),
+    monthlyCompletionPercent: getTeamCompletionPercent(input.monthDays, memberCount),
+    weekDays: input.weekDays,
+    monthDays: input.monthDays,
+    weekDailyRings,
+    monthDailyRings,
     members,
   };
 }

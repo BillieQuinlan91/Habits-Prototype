@@ -15,7 +15,7 @@ export function TeamMemberProgressList({
   return (
     <div className="space-y-3">
       {members.map((member) => {
-        const missedSelectedDate = selectedDate ? !member.checkedInDates.includes(selectedDate) : false;
+        const missedSelectedDate = selectedDate ? !member.highlightDates.includes(selectedDate) : false;
 
         return (
           <TeamMemberProgressRow
