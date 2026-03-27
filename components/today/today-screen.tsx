@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, LockKeyhole, Target } from "lucide-react";
 
@@ -18,7 +18,11 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { CircleDashboard, PostCheckInPopupState, Profile, TodayHabitItem } from "@/lib/types";
-import { getWeekWindow } from "@/lib/utils";
+import { cn, getWeekWindow } from "@/lib/utils";
+
+type CheckInAcknowledgmentState = "idle" | "acknowledging";
+
+const ACKNOWLEDGMENT_DELAY_MS = 850;
 
 export function TodayScreen({
   profile,
@@ -37,6 +41,8 @@ export function TodayScreen({
   const [popupState, setPopupState] = useState<PostCheckInPopupState>({ kind: "idle" });
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [sharedMessage, setSharedMessage] = useState("");
+  const [acknowledgmentState, setAcknowledgmentState] = useState<CheckInAcknowledgmentState>("idle");
+  const popupTimeoutRef = useRef<number | null>(null);
 
   const focusHabit = useMemo(
     () => items.find((habit) => habit.is_primary) ?? items[0] ?? null,
@@ -46,6 +52,15 @@ export function TodayScreen({
     () => (isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard),
     [circleDashboard, isDemo],
   );
+  const isAcknowledging = acknowledgmentState === "acknowledging";
+
+  useEffect(() => {
+    return () => {
+      if (popupTimeoutRef.current) {
+        window.clearTimeout(popupTimeoutRef.current);
+      }
+    };
+  }, []);
 
   function buildNextLog(habit: TodayHabitItem, nextCompleted: boolean, nextProgressValue: number | null) {
     return {
@@ -109,11 +124,20 @@ export function TodayScreen({
 
       setSelectedEmoji(null);
       setSharedMessage("");
-      setPopupState(
-        pendingTeammates.length
-          ? { kind: "pending_teammates", teammates: pendingTeammates }
-          : { kind: "celebration" },
-      );
+      setAcknowledgmentState("acknowledging");
+
+      if (popupTimeoutRef.current) {
+        window.clearTimeout(popupTimeoutRef.current);
+      }
+
+      popupTimeoutRef.current = window.setTimeout(() => {
+        setAcknowledgmentState("idle");
+        setPopupState(
+          pendingTeammates.length
+            ? { kind: "pending_teammates", teammates: pendingTeammates }
+            : { kind: "celebration" },
+        );
+      }, ACKNOWLEDGMENT_DELAY_MS);
     }
   }
 
@@ -167,7 +191,7 @@ export function TodayScreen({
         </Card>
       </div>
 
-      <Card className="space-y-4">
+      <Card className={cn("relative space-y-4 overflow-hidden", isAcknowledging && "animate-celebrate border-success/30 bg-success/5")}>
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-foreground/40">
@@ -210,9 +234,30 @@ export function TodayScreen({
           </div>
         ) : null}
 
-        <Button className="w-full" onClick={() => void toggleHabit()}>
+        {isAcknowledging ? (
+          <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="absolute h-24 w-24 rounded-full border border-success/30 animate-burst" />
+              <span className="absolute h-32 w-32 rounded-full border border-success/15 animate-burst [animation-delay:120ms]" />
+            </div>
+            <p className="relative text-sm font-medium text-success">That counts. You showed up again today.</p>
+          </div>
+        ) : null}
+
+        <Button
+          className={cn(
+            "relative w-full overflow-hidden",
+            isAcknowledging && "animate-celebrate bg-success text-white hover:bg-success",
+          )}
+          onClick={() => void toggleHabit()}
+        >
+          {isAcknowledging ? (
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <span className="absolute h-20 w-20 rounded-full bg-white/12 animate-burst" />
+            </span>
+          ) : null}
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          {focusHabit.log?.completed ? "Checked in" : "Check in"}
+          {isAcknowledging ? "Checked in" : focusHabit.log?.completed ? "Checked in" : "Check in"}
         </Button>
       </Card>
 

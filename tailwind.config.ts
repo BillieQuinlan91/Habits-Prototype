@@ -30,6 +30,8 @@ const config: Config = {
         float: "float 8s ease-in-out infinite",
         pulseSoft: "pulseSoft 600ms ease-out",
         rise: "rise 500ms ease-out",
+        celebrate: "celebrate 700ms cubic-bezier(0.22, 1, 0.36, 1)",
+        burst: "burst 650ms ease-out",
       },
       keyframes: {
         float: {
@@ -43,6 +45,16 @@ const config: Config = {
         rise: {
           "0%": { transform: "translateY(10px)", opacity: "0" },
           "100%": { transform: "translateY(0px)", opacity: "1" },
+        },
+        celebrate: {
+          "0%": { transform: "scale(0.98)", boxShadow: "0 0 0 rgba(111,175,143,0)" },
+          "40%": { transform: "scale(1.02)", boxShadow: "0 18px 36px rgba(111,175,143,0.22)" },
+          "100%": { transform: "scale(1)", boxShadow: "0 0 0 rgba(111,175,143,0)" },
+        },
+        burst: {
+          "0%": { transform: "scale(0.6)", opacity: "0" },
+          "35%": { opacity: "0.9" },
+          "100%": { transform: "scale(1.35)", opacity: "0" },
         },
       },
     },
