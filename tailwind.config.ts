@@ -32,7 +32,7 @@ const config: Config = {
         rise: "rise 500ms ease-out",
         celebrate: "celebrate 700ms cubic-bezier(0.22, 1, 0.36, 1)",
         burst: "burst 650ms ease-out",
-        confettiFall: "confettiFall 1400ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
+        confettiFall: "confettiFall 1500ms cubic-bezier(0.16, 1, 0.3, 1) forwards",
       },
       keyframes: {
         float: {
@@ -58,9 +58,9 @@ const config: Config = {
           "100%": { transform: "scale(1.35)", opacity: "0" },
         },
         confettiFall: {
-          "0%": { transform: "translateY(-28px) rotate(0deg)", opacity: "0" },
+          "0%": { transform: "translateY(-60px) rotate(0deg)", opacity: "0" },
           "15%": { opacity: "1" },
-          "100%": { transform: "translateY(180px) rotate(220deg)", opacity: "0" },
+          "100%": { transform: "translateY(100vh) rotate(220deg)", opacity: "0" },
         },
       },
     },

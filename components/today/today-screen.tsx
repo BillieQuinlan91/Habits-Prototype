@@ -24,6 +24,19 @@ type CheckInAcknowledgmentState = "idle" | "acknowledging";
 
 const ACKNOWLEDGMENT_DELAY_MS = 2000;
 const CONFETTI_COLORS = ["bg-success", "bg-accent", "bg-accent2", "bg-[#F0CDA8]", "bg-white/80"];
+const CONFETTI_PIECES = [
+  { left: "6%", delay: 0, rotate: -10 },
+  { left: "14%", delay: 90, rotate: 18 },
+  { left: "23%", delay: 170, rotate: -22 },
+  { left: "31%", delay: 240, rotate: 14 },
+  { left: "40%", delay: 120, rotate: -8 },
+  { left: "49%", delay: 210, rotate: 26 },
+  { left: "58%", delay: 60, rotate: -18 },
+  { left: "67%", delay: 150, rotate: 20 },
+  { left: "76%", delay: 280, rotate: -12 },
+  { left: "85%", delay: 110, rotate: 16 },
+  { left: "93%", delay: 230, rotate: -24 },
+] as const;
 
 export function TodayScreen({
   profile,
@@ -175,6 +188,25 @@ export function TodayScreen({
 
   return (
     <div className="space-y-5">
+      {isAcknowledging ? (
+        <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-screen overflow-hidden motion-reduce:hidden">
+          {CONFETTI_PIECES.map((piece, index) => (
+            <span
+              key={`${piece.left}-${index}`}
+              className={cn(
+                "absolute top-0 h-4 w-2 rounded-full opacity-0 animate-confettiFall",
+                CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+              )}
+              style={{
+                left: piece.left,
+                animationDelay: `${piece.delay}ms`,
+                transform: `rotate(${piece.rotate}deg)`,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
+
       <div className="space-y-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
@@ -237,22 +269,6 @@ export function TodayScreen({
 
         {isAcknowledging ? (
           <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-            <div className="pointer-events-none absolute inset-0">
-              {CONFETTI_COLORS.map((tone, index) => (
-                <span
-                  key={`${tone}-${index}`}
-                  className={cn(
-                    "absolute top-0 h-3 w-2 rounded-full opacity-0 animate-confettiFall motion-reduce:hidden",
-                    tone,
-                  )}
-                  style={{
-                    left: `${8 + index * 18}%`,
-                    animationDelay: `${index * 110}ms`,
-                    transform: `rotate(${index * 22}deg)`,
-                  }}
-                />
-              ))}
-            </div>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
               <span className="absolute h-28 w-28 rounded-full border border-success/30 animate-burst" />
               <span className="absolute h-36 w-36 rounded-full border border-success/15 animate-burst [animation-delay:120ms]" />
