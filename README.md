@@ -1,6 +1,6 @@
 # Becoming
 
-Becoming is a mobile-first community habit tracker for founder tribes. Users log 1 to 5 daily habits, stay accountable inside a small tribe, and get nudged into a weekly Sunday encouragement ritual.
+Becoming is a mobile-first community habit tracker for founder circles. Users commit to a focused daily habit, stay accountable inside a small group, and see shared completion through a team-based progress dashboard.
 
 ## Stack
 
@@ -18,13 +18,13 @@ app/
   auth/page.tsx                Auth screen
   onboarding/page.tsx          Join/create tribe, habits, integrations
   today/page.tsx               Daily logging screen
-  tribe/page.tsx               Tribe leaderboard and interaction flow
+  tribe/page.tsx               Circle dashboard and group accountability flow
   profile/page.tsx             Profile and settings
 components/
   auth/                        Auth UI
   onboarding/                  Onboarding flow
   today/                       Today screen
-  tribe/                       Leaderboard and reaction sheet
+  tribe/                       Circle dashboard and interaction sheet
   profile/                     Profile screen
   ui/                          Reusable design-system primitives
 lib/
@@ -86,19 +86,19 @@ The migration includes:
 
 - Core tables for profiles, tribes, memberships, habits, logs, reactions, comments, integrations, and notification preferences
 - RLS policies
-- Membership guardrails for one-tribe-per-user and max 8 tribe members
+- Membership guardrails for one-circle-per-user and max 8 tribe members
 - RPCs for tribe search, tribe join, tribe creation, and organization rankings
 - Triggers for auth-user profile creation and `updated_at` maintenance
 
 ## Product Notes
 
-- Sunday logic is handled in the Today flow with a dedicated nudge once habits are fully logged.
-- Measurable habits can still be marked complete even below target.
+- The current shared-progress direction is a team completion ring plus weekly recovery grid.
+- The earlier constellation system is retained only as deprecated historical context.
 - Notification preferences are stored now; actual reminder delivery is scaffolded for a later cron or edge-function pass.
-- The organization leaderboard only exposes aggregate tribe scores.
 - Brand voice guidance lives in [BRAND.md](/Users/markmcdermott/Code/foundrs-prototype/BRAND.md).
 - Visual design guidance lives in [VISUAL_IDENTITY.md](/Users/markmcdermott/Code/foundrs-prototype/VISUAL_IDENTITY.md) and [UI_COMPONENT_LIBRARY.md](/Users/markmcdermott/Code/foundrs-prototype/UI_COMPONENT_LIBRARY.md).
-- Constellation behavior guidance lives in [CONSTELLATION_SYSTEM.md](/Users/markmcdermott/Code/foundrs-prototype/CONSTELLATION_SYSTEM.md).
+- Team-ring behavior guidance lives in [TEAM_RING_SYSTEM.md](/Users/markmcdermott/Code/foundrs-prototype/TEAM_RING_SYSTEM.md).
+- Deprecated constellation guidance remains in [CONSTELLATION_SYSTEM.md](/Users/markmcdermott/Code/foundrs-prototype/CONSTELLATION_SYSTEM.md) for historical reference only.
 - Feedback templates for screen-by-screen review are in [FEEDBACK.md](/Users/markmcdermott/Code/foundrs-prototype/FEEDBACK.md) and the in-app `/feedback` route.
 
 ## Deployment
