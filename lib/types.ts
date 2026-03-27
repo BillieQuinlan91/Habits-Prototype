@@ -143,6 +143,18 @@ export type TeamPageData = {
   members: TeamMemberProgress[];
 };
 
+export type PostCheckInPopupState =
+  | { kind: "idle" }
+  | { kind: "pending_teammates"; teammates: CircleMemberStatus[] }
+  | { kind: "celebration" }
+  | { kind: "sending"; teammates: CircleMemberStatus[] };
+
+export type BulkEncouragementPayload = {
+  toUserIds: string[];
+  emoji: string | null;
+  message: string;
+};
+
 export type OrganizationRanking = {
   tribeId: string;
   tribeName: string;

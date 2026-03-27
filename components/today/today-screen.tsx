@@ -1,17 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { CheckCircle2, LockKeyhole, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PostCheckInPopup } from "@/components/today/post-check-in-popup";
 import { TeamRing } from "@/components/ui/team-ring";
-import { applyDemoCheckinOverride, writeDemoCheckinStatus } from "@/lib/demo/overrides";
+import {
+  applyDemoCheckinOverride,
+  writeDemoCheckinStatus,
+  writeDemoSocialActivity,
+} from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { CircleDashboard, Profile, TodayHabitItem } from "@/lib/types";
+import { CircleDashboard, PostCheckInPopupState, Profile, TodayHabitItem } from "@/lib/types";
+import { getWeekWindow } from "@/lib/utils";
 
 export function TodayScreen({
   profile,
@@ -24,8 +31,12 @@ export function TodayScreen({
   circleDashboard: CircleDashboard | null;
   isDemo?: boolean;
 }) {
+  const router = useRouter();
   const [items, setItems] = useState(habits);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [popupState, setPopupState] = useState<PostCheckInPopupState>({ kind: "idle" });
+  const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
+  const [sharedMessage, setSharedMessage] = useState("");
 
   const focusHabit = useMemo(
     () => items.find((habit) => habit.is_primary) ?? items[0] ?? null,
@@ -92,6 +103,18 @@ export function TodayScreen({
     setFeedback(null);
     setItems(next);
     await persistLog(focusHabit, nextCompleted, nextProgressValue);
+    if (nextCompleted) {
+      const pendingTeammates =
+        visibleCircleDashboard?.members.filter((member) => !member.isCurrentUser && member.status === "pending") ?? [];
+
+      setSelectedEmoji(null);
+      setSharedMessage("");
+      setPopupState(
+        pendingTeammates.length
+          ? { kind: "pending_teammates", teammates: pendingTeammates }
+          : { kind: "celebration" },
+      );
+    }
   }
 
   async function updateProgress(rawValue: string) {
@@ -216,6 +239,89 @@ export function TodayScreen({
           Demo mode previews the first-week rhythm without persistence.
         </p>
       ) : null}
+
+      <PostCheckInPopup
+        state={popupState}
+        selectedEmoji={selectedEmoji}
+        message={sharedMessage}
+        onSelectEmoji={setSelectedEmoji}
+        onMessageChange={setSharedMessage}
+        onSend={() => void handleBulkEncouragement()}
+        onSkip={() => {
+          setPopupState({ kind: "idle" });
+          router.push("/tribe");
+        }}
+        onClose={() => setPopupState({ kind: "idle" })}
+      />
     </div>
   );
+
+  async function handleBulkEncouragement() {
+    if (popupState.kind !== "pending_teammates" || !selectedEmoji) {
+      return;
+    }
+
+    const teammateIds = popupState.teammates.map((teammate) => teammate.user_id);
+    setPopupState({ kind: "sending", teammates: popupState.teammates });
+    setFeedback(null);
+
+    if (isDemo || !hasSupabaseEnv()) {
+      writeDemoSocialActivity({
+        id: `demo-${Date.now()}`,
+        text: `You sent ${selectedEmoji} to ${popupState.teammates.length} pending teammates.`,
+      });
+      setPopupState({ kind: "idle" });
+      router.push("/tribe");
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("You need to sign in first.");
+      }
+
+      const { start } = getWeekWindow();
+      const weekStart = start.toISOString().slice(0, 10);
+
+      const reactionRows = teammateIds.map((toUserId) => ({
+        from_user_id: user.id,
+        to_user_id: toUserId,
+        week_start_date: weekStart,
+        emoji: selectedEmoji,
+      }));
+
+      const { error: reactionError } = await supabase
+        .from("member_reactions")
+        .upsert(reactionRows, { onConflict: "from_user_id,to_user_id,week_start_date,emoji", ignoreDuplicates: true });
+
+      if (reactionError) {
+        throw reactionError;
+      }
+
+      if (sharedMessage.trim()) {
+        const commentRows = teammateIds.map((toUserId) => ({
+          from_user_id: user.id,
+          to_user_id: toUserId,
+          week_start_date: weekStart,
+          message: sharedMessage.trim(),
+        }));
+
+        const { error: commentError } = await supabase.from("member_comments").insert(commentRows);
+        if (commentError) {
+          throw commentError;
+        }
+      }
+
+      setPopupState({ kind: "idle" });
+      router.push("/tribe");
+    } catch (sendError) {
+      setFeedback(sendError instanceof Error ? sendError.message : "Unable to send encouragement right now.");
+      setPopupState({ kind: "pending_teammates", teammates: popupState.teammates });
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import { CircleDashboard, CircleMemberStatus } from "@/lib/types";
 
 const DEMO_CHECKIN_KEY = "becoming-demo-checkin-status";
+const DEMO_SOCIAL_ACTIVITY_KEY = "becoming-demo-social-activity";
 
 export function writeDemoCheckinStatus(status: "checked_in" | "pending") {
   if (typeof window === "undefined") {
@@ -48,4 +49,31 @@ export function applyDemoCheckinOverride(circleDashboard: CircleDashboard | null
           : `${checkedInCount} of ${members.length} are in today.`
         : circleDashboard.accountabilityMessage,
   };
+}
+
+export function writeDemoSocialActivity(entry: { id: string; text: string }) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const current = readDemoSocialActivity();
+  window.sessionStorage.setItem(DEMO_SOCIAL_ACTIVITY_KEY, JSON.stringify([entry, ...current].slice(0, 5)));
+}
+
+export function readDemoSocialActivity(): Array<{ id: string; text: string }> {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.sessionStorage.getItem(DEMO_SOCIAL_ACTIVITY_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
