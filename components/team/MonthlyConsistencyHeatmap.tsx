@@ -13,22 +13,22 @@ function getCellTone(day: TeamMonthCellData) {
   }
 
   if (day.completionPercent === 100) {
-    return "bg-[#4F6FF7] text-white shadow-[0_10px_24px_rgba(79,111,247,0.18)]";
+    return "bg-[#7EAE8B] text-white shadow-[0_10px_24px_rgba(126,174,139,0.18)]";
+  }
+
+  if (day.completionPercent === 0) {
+    return "bg-[#E9D7D2] text-[#7F5D54]";
   }
 
   if (day.completionPercent >= 75) {
-    return "bg-[#728DE9] text-white";
+    return "bg-[#E9B47D] text-[#5E3A12]";
   }
 
   if (day.completionPercent >= 50) {
-    return "bg-[#AFC0F7] text-foreground";
+    return "bg-[#F0CDA8] text-[#6B4720]";
   }
 
-  if (day.completionPercent > 0) {
-    return "bg-[#E3EAFD] text-foreground/76";
-  }
-
-  return "bg-[#F3F5FA] text-foreground/46";
+  return "bg-[#F5E6D6] text-[#825E36]";
 }
 
 export function MonthlyConsistencyHeatmap({
@@ -60,17 +60,14 @@ export function MonthlyConsistencyHeatmap({
               onClick={() => day.isInCurrentMonth && onSelectDay?.(day.date)}
               aria-label={`${fullLabel}: ${day.checkedInCount} of ${day.totalCount} team members checked in`}
               className={cn(
-                "flex aspect-square min-h-[44px] items-start justify-between rounded-[18px] border p-2 text-left transition",
+                "flex aspect-square min-h-[44px] items-start rounded-[18px] border p-2 text-left transition",
                 getCellTone(day),
                 day.isInCurrentMonth ? "border-transparent" : "border-dashed border-border/50",
-                day.isToday && "ring-1 ring-[#728DE9]/35",
+                day.isToday && "ring-1 ring-[#B88A55]/35",
                 isSelected && "ring-2 ring-foreground/14",
               )}
             >
               <span className="text-sm font-medium">{day.isInCurrentMonth ? day.dayNumber : ""}</span>
-              {day.isInCurrentMonth ? (
-                <span className="text-[11px] opacity-72">{day.checkedInCount}/{day.totalCount}</span>
-              ) : null}
             </button>
           );
         })}
