@@ -173,8 +173,13 @@ export function HabitJourneyPanel({
 
       <div className="space-y-4">
         {journey.milestones.map((milestone, index) => {
-          const description =
-            milestone.phase === "day_75"
+          const description = milestone.isUnlocked
+            ? milestone.phase === "day_75"
+              ? "You did it. This no longer looks like effort alone. It looks like identity."
+              : milestone.phase === "day_30"
+                ? "You did it. This habit is starting to hold on its own. Time to keep the rhythm steady."
+                : "You did it. The first 7 days are hard, but you completed them like a pro. Time to lock it in!"
+            : milestone.phase === "day_75"
               ? "This is the identity phase. Repetition has started to change how you see yourself."
               : milestone.phase === "day_30"
                 ? "This is the lock-in phase. There is less negotiation and more return."
