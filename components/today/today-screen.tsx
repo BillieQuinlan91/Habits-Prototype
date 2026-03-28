@@ -1,5 +1,6 @@
 "use client";
 
+import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, LockKeyhole, Target } from "lucide-react";
@@ -52,6 +53,7 @@ export function TodayScreen({
   isDemo?: boolean;
 }) {
   const router = useRouter();
+  const todayLabel = format(new Date(), "EEEE d MMMM");
   const [items, setItems] = useState(() => (isDemo ? applyDemoHabitOverride(habits) : habits));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [popupState, setPopupState] = useState<PostCheckInPopupState>({ kind: "idle" });
@@ -222,7 +224,10 @@ export function TodayScreen({
       <div className="space-y-3">
         <div>
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Today</p>
-          <h2 className="mt-2 font-display text-3xl font-normal tracking-tight">Keep the promise.</h2>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <h2 className="font-display text-3xl font-normal tracking-tight">Keep the promise.</h2>
+            <p className="pb-1 text-sm text-foreground/48">{todayLabel}</p>
+          </div>
         </div>
 
         <Card className="space-y-3 bg-surface/70">
