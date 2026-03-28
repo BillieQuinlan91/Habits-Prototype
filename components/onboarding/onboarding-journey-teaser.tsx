@@ -2,79 +2,75 @@
 
 import { cn } from "@/lib/utils";
 
-const CIRCLE_CONFIG = [
-  { size: 52, color: "stroke-success" },
-  { size: 72, color: "stroke-accent" },
-  { size: 94, color: "stroke-accent2" },
+const MEMBER_COLORS = [
+  "bg-[#4F7A96]",
+  "bg-[#6E93AD]",
+  "bg-[#8AA9C1]",
+  "bg-[#A8BED1]",
+  "bg-[#C8D7E3]",
 ] as const;
 
-const STEP_PROGRESS = [
-  [0.28, 0.08, 0.04],
-  [0.72, 0.16, 0.08],
-  [1, 0.36, 0.12],
-  [1, 0.74, 0.22],
-  [1, 1, 0.48],
-  [1, 1, 0.9],
-] as const;
+const STEP_ACTIVE_COUNTS = [1, 2, 3, 4, 4, 5] as const;
 
 export function OnboardingJourneyTeaser({
   step,
 }: {
   step: number;
 }) {
-  const stepIndex = Math.min(Math.max(step, 0), STEP_PROGRESS.length - 1);
-  const progress = STEP_PROGRESS[stepIndex];
+  const stepIndex = Math.min(Math.max(step, 0), STEP_ACTIVE_COUNTS.length - 1);
+  const activeCount = STEP_ACTIVE_COUNTS[stepIndex];
 
   return (
     <div className="rounded-[28px] bg-surface/50 px-4 py-4">
-      <div className="flex items-end justify-center gap-4 sm:gap-5">
-        {CIRCLE_CONFIG.map((circle, index) => {
-          const stroke = 7;
-          const radius = (circle.size - stroke) / 2;
-          const circumference = 2 * Math.PI * radius;
-          const ratio = progress[index];
-          const dashOffset = circumference * (1 - ratio);
-          const fillOpacity = index === 0 ? "bg-success/10" : index === 1 ? "bg-accent/10" : "bg-accent2/10";
+      <div className="relative mx-auto max-w-[320px]">
+        <div className="absolute left-6 right-6 top-1/2 h-px -translate-y-1/2 bg-foreground/10" />
+        <div className="absolute left-8 right-8 top-1/2 h-8 -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,rgba(119,164,191,0.05),rgba(119,164,191,0.12),rgba(119,164,191,0.05))]" />
+        <div className="relative flex items-center justify-between">
+          {MEMBER_COLORS.map((color, index) => {
+            const isActive = index < activeCount;
+            const isPending = index === activeCount && activeCount < MEMBER_COLORS.length;
 
-          return (
-            <div key={circle.size} className="relative" aria-hidden="true">
+            return (
               <div
-                className={cn(
-                  "absolute inset-0 rounded-full blur-[1px]",
-                  fillOpacity,
-                  ratio > 0.95 ? "opacity-100" : ratio > 0.45 ? "opacity-80" : "opacity-55",
-                )}
-              />
-              <svg width={circle.size} height={circle.size} viewBox={`0 0 ${circle.size} ${circle.size}`} className="relative">
-                <circle
-                  cx={circle.size / 2}
-                  cy={circle.size / 2}
-                  r={radius}
-                  fill="none"
-                  stroke="currentColor"
-                  className="text-foreground/10"
-                  strokeWidth={stroke}
-                />
-                <circle
-                  cx={circle.size / 2}
-                  cy={circle.size / 2}
-                  r={radius}
-                  fill="none"
-                  strokeWidth={stroke}
-                  strokeLinecap="round"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={dashOffset}
+                key={`${color}-${index}`}
+                className="flex flex-col items-center gap-2"
+                aria-hidden="true"
+              >
+                <div
                   className={cn(
-                    "origin-center -rotate-90 transition-all duration-500 ease-out",
-                    circle.color,
-                    ratio > 0.95 ? "opacity-100" : "opacity-75",
+                    "flex items-center justify-center rounded-full border transition-all duration-500 ease-out",
+                    index === 2 ? "h-14 w-14" : "h-11 w-11",
+                    isActive
+                      ? "border-white/55 shadow-[0_10px_24px_rgba(79,122,150,0.16)]"
+                      : isPending
+                        ? "border-accent/25 bg-card/95"
+                        : "border-border/70 bg-card/78",
+                    isActive ? color : "",
                   )}
-                  style={{ transformOrigin: "50% 50%" }}
+                >
+                  <div
+                    className={cn(
+                      "rounded-full transition-all duration-500 ease-out",
+                      index === 2 ? "h-4 w-4" : "h-3 w-3",
+                      isActive
+                        ? "bg-white/88"
+                        : isPending
+                          ? "border border-accent/30 bg-accent/10"
+                          : "bg-foreground/14",
+                    )}
+                  />
+                </div>
+                <div
+                  className={cn(
+                    "h-1.5 rounded-full transition-all duration-500 ease-out",
+                    index === 2 ? "w-8" : "w-6",
+                    isActive ? "bg-success/65" : isPending ? "bg-accent/28" : "bg-foreground/12",
+                  )}
                 />
-              </svg>
-            </div>
-          );
-        })}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
