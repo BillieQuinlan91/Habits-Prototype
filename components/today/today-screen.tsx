@@ -455,7 +455,10 @@ export function TodayScreen({
       }
     }
 
-    const socialPopupState = buildPostCheckInState(visibleCircleDashboard);
+    const allHabitsCompleted = nextItems.every((item) => Boolean(item.log?.completed));
+    const socialPopupState = allHabitsCompleted
+      ? buildPostCheckInState(visibleCircleDashboard)
+      : ({ kind: "idle" } as PostCheckInPopupState);
     queuedPopupRef.current = socialPopupState;
     setSelectedEmoji(null);
     setSharedMessage("");

@@ -175,9 +175,9 @@ export function HabitJourneyPanel({
         {journey.milestones.map((milestone, index) => {
           const description = milestone.isUnlocked
             ? milestone.phase === "day_75"
-              ? "You did it. Seventy-five days in, this habit looks like part of who you are. Identity formed."
+              ? "Seventy-five days later, this looks less like effort and more like identity. You have become someone who returns to it."
               : milestone.phase === "day_30"
-                ? "You did it. Thirty days of showing up has started to lock this habit in. This is becoming your new normal."
+                ? "A month in, the shape of this is changing. You are not starting from scratch anymore. It is beginning to hold."
                 : "You did it. The first 7 days are hard, but you completed them like a pro. Time to lock it in!"
             : milestone.phase === "day_75"
               ? "This is the identity phase. Repetition has started to change how you see yourself."
@@ -204,7 +204,7 @@ export function HabitJourneyPanel({
                 className={cn(
                   "flex-1 rounded-[24px] border px-4 py-4",
                   milestone.isUnlocked
-                    ? "border-success/25 bg-success/8"
+                    ? "border-success/30 bg-success/16 text-success"
                     : journey.nextMilestone?.phase === milestone.phase
                       ? "border-accent/25 bg-accent/6"
                       : "border-border/70 bg-surface/60",
@@ -212,15 +212,15 @@ export function HabitJourneyPanel({
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs uppercase tracking-[0.18em] text-foreground/40">{milestone.shortLabel}</p>
+                    <p className={cn("text-xs uppercase tracking-[0.18em]", milestone.isUnlocked ? "text-success/70" : "text-foreground/40")}>{milestone.shortLabel}</p>
                     <p className="mt-1 font-display text-xl font-normal">{milestone.title}</p>
                   </div>
-                  <span className="text-sm text-foreground/50">
+                  <span className={cn("text-sm", milestone.isUnlocked ? "text-success/80" : "text-foreground/50")}>
                     {milestone.isUnlocked ? "Unlocked" : journey.nextMilestone?.phase === milestone.phase ? "In progress" : "Locked"}
                   </span>
                 </div>
-                <p className="mt-3 text-sm text-foreground/62">{description}</p>
-                <p className="mt-3 text-sm text-foreground/52">
+                <p className={cn("mt-3 text-sm", milestone.isUnlocked ? "text-success/90" : "text-foreground/62")}>{description}</p>
+                <p className={cn("mt-3 text-sm", milestone.isUnlocked ? "text-success/75" : "text-foreground/52")}>
                   {milestone.isUnlocked
                     ? `Unlocked with ${Math.round(milestone.consistencyPercent * 100)}% consistency.`
                     : `Needs ${milestone.requiredCompletedDays}/${milestone.targetDays} completed days at 80% consistency.`}

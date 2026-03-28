@@ -12,21 +12,21 @@ type MilestonePopupTone = "willpower" | "locking" | "identity";
 function getToneClasses(tone: MilestonePopupTone) {
   if (tone === "identity") {
     return {
-      panel: "border-success/25 bg-success/12",
+      panel: "border-success/30 bg-success/18",
       eyebrow: "text-success",
     };
   }
 
   if (tone === "locking") {
     return {
-      panel: "border-accent2/30 bg-accent2/10",
-      eyebrow: "text-accent2",
+      panel: "border-success/30 bg-success/18",
+      eyebrow: "text-success",
     };
   }
 
   return {
-    panel: "border-accent/25 bg-accent/10",
-    eyebrow: "text-accent",
+    panel: "border-success/30 bg-success/18",
+    eyebrow: "text-success",
   };
 }
 
@@ -52,10 +52,10 @@ export function MilestonePopup({
   const styles = getToneClasses(tone);
   const bodyCopy =
     milestone.phase === "day_75"
-      ? "This is no longer just effort. It is starting to look like identity."
+      ? "Seventy-five days in, this looks less like effort and more like identity."
       : milestone.phase === "day_30"
-        ? "This is getting easier to return to. The habit is starting to hold its shape."
-        : "You have made it through the early negotiation. Repetition is starting to win.";
+        ? "A month of repetition has started to settle this habit into place."
+        : "The first week is the hardest part, and you got through it.";
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end bg-black/35 p-4">
@@ -63,13 +63,15 @@ export function MilestonePopup({
         <div className="space-y-5">
           <div className={cn("flex items-center gap-2", styles.eyebrow)}>
             <PartyPopper className="h-4 w-4" />
-            <p className="text-xs uppercase tracking-[0.24em]">{milestone.title}</p>
+            <p className="text-xs uppercase tracking-[0.24em]">Milestone unlocked</p>
           </div>
           <div>
             <h3 className="font-display text-3xl font-normal tracking-tight">
-              {milestone.shortLabel} unlocked for {habitName}.
+              You&apos;re making this look easy.
             </h3>
-            <p className="mt-3 text-sm text-foreground/68">{bodyCopy}</p>
+            <p className="mt-3 text-sm text-foreground/68">
+              {milestone.shortLabel} unlocked for {habitName}. {bodyCopy}
+            </p>
           </div>
           {milestone.phase === "day_75" ? (
             <div className="flex gap-2">
