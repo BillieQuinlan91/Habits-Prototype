@@ -160,6 +160,11 @@ export function TodayScreen({
     setItems(next);
     await persistLog(focusHabit, nextCompleted, nextProgressValue);
     if (nextCompleted) {
+      if (receivedSupportDigest) {
+        markSupportDigestSeen(receivedSupportDigest);
+        setShowSupportDigest(false);
+      }
+
       const pendingTeammates =
         visibleCircleDashboard?.members.filter((member) => !member.isCurrentUser && member.status === "pending") ?? [];
 
@@ -268,29 +273,6 @@ export function TodayScreen({
             {receivedSupportDigest.reactionSummary ? (
               <p className="text-sm text-foreground/52">{receivedSupportDigest.reactionSummary}</p>
             ) : null}
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <button
-              type="button"
-              className="text-sm font-medium text-accent"
-              onClick={() => {
-                markSupportDigestSeen(receivedSupportDigest);
-                setShowSupportDigest(false);
-                router.push("/tribe");
-              }}
-            >
-              See team
-            </button>
-            <button
-              type="button"
-              className="text-sm text-foreground/44"
-              onClick={() => {
-                markSupportDigestSeen(receivedSupportDigest);
-                setShowSupportDigest(false);
-              }}
-            >
-              Noted
-            </button>
           </div>
         </Card>
       ) : null}
