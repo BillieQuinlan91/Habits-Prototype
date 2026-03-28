@@ -225,32 +225,39 @@ export function OnboardingFlow({
             </p>
           </div>
 
-          <Input
-            placeholder="What should your circle call you?"
-            value={state.fullName}
-            onChange={(event) => setState((current) => ({ ...current, fullName: event.target.value }))}
-          />
+          <div className="space-y-3">
+            <div className="rounded-[28px] border border-border bg-surface/60 px-4 py-4">
+              <p className="text-sm font-medium text-foreground">Hi, what&apos;s your name?</p>
+              <div className="mt-3">
+                <Input
+                  placeholder="What should your circle call you?"
+                  value={state.fullName}
+                  onChange={(event) => setState((current) => ({ ...current, fullName: event.target.value }))}
+                />
+              </div>
+            </div>
 
-          <div className="grid gap-2">
-            {IDENTITY_PRESETS.map((preset) => {
-              const selected = state.identityPreset === preset;
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setState((current) => ({ ...current, identityPreset: preset }))}
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition",
-                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
-                  )}
+            <div className="rounded-[28px] border border-border bg-surface/60 px-4 py-4">
+              <p className="text-sm font-medium text-foreground">Who are you becoming?</p>
+              <div className="mt-3">
+                <Select
+                  value={state.identityPreset}
+                  onChange={(event) =>
+                    setState((current) => ({
+                      ...current,
+                      identityPreset: event.target.value,
+                    }))
+                  }
                 >
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="font-medium">{preset === "Custom" ? preset : formatIdentityLabel(preset)}</span>
-                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
-                  </div>
-                </button>
-              );
-            })}
+                  <option value="">who are you becoming</option>
+                  {IDENTITY_PRESETS.map((preset) => (
+                    <option key={preset} value={preset}>
+                      {preset === "Custom" ? preset : formatIdentityLabel(preset)}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            </div>
           </div>
 
           {state.identityPreset === "Custom" ? (
