@@ -287,26 +287,27 @@ export function OnboardingFlow({
             </p>
           </div>
 
-          <div className="grid gap-2">
-            {DOMINO_HABIT_PRESETS.map((preset) => {
-              const selected = state.habitPreset === preset;
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setState((current) => ({ ...current, habitPreset: preset }))}
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition",
-                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="font-medium">{preset}</span>
-                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
-                  </div>
-                </button>
-              );
-            })}
+          <div className="rounded-[28px] border border-border bg-surface/60 px-4 py-4">
+            <p className="text-sm font-medium text-foreground">What habit puts everything else in motion?</p>
+            <div className="mt-3">
+              <Select
+                className={cn(!state.habitPreset && "text-foreground/38")}
+                value={state.habitPreset}
+                onChange={(event) =>
+                  setState((current) => ({
+                    ...current,
+                    habitPreset: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Choose one habit</option>
+                {DOMINO_HABIT_PRESETS.map((preset) => (
+                  <option key={preset} value={preset}>
+                    {preset}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           {state.habitPreset === "Custom" ? (
