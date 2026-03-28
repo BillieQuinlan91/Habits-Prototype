@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { Check, ChevronLeft, ChevronRight, LockKeyhole, Users } from "lucide-react";
 
+import { OnboardingJourneyTeaser } from "@/components/onboarding/onboarding-journey-teaser";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ConstellationWidget } from "@/components/ui/constellation-widget";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import {
@@ -216,7 +216,7 @@ export function OnboardingFlow({
 
       {step === 0 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={1} totalCount={6} variant="onboarding" />
+          <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 1</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Start with identity</h2>
@@ -270,7 +270,7 @@ export function OnboardingFlow({
 
       {step === 1 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={2} totalCount={6} variant="onboarding" />
+          <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Choose one domino habit</h2>
@@ -323,7 +323,7 @@ export function OnboardingFlow({
 
       {step === 2 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={3} totalCount={6} variant="onboarding" />
+          <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 3</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Shrink it once more</h2>
@@ -376,7 +376,7 @@ export function OnboardingFlow({
 
       {step === 3 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={4} totalCount={6} variant="onboarding" />
+          <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 4</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Commit to seven days</h2>
@@ -419,7 +419,7 @@ export function OnboardingFlow({
 
       {step === 4 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={5} totalCount={6} variant="onboarding" />
+          <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 5</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Join a circle</h2>
@@ -516,7 +516,7 @@ export function OnboardingFlow({
 
       {step === 5 ? (
         <Card className="space-y-5 animate-rise">
-          <ConstellationWidget activeCount={6} totalCount={6} variant="onboarding" />
+          <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 6</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Your circle will see today</h2>
