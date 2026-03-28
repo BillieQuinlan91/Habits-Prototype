@@ -404,6 +404,10 @@ function readDemoCookieJson<T>(value?: string): T | null {
 async function getDemoBootstrap(): Promise<AppBootstrap> {
   const cookieStore = await cookies();
   const today = toDateKey();
+  const weekDates = getWeekDateKeys();
+  const monthDates = getMonthDateKeys();
+  const recentWeekDates = weekDates.slice(-5);
+  const recentMonthDates = monthDates.slice(-5);
   const demoCheckinOverride = readDemoCookieJson<{ status: "checked_in" | "pending"; date: string }>(
     cookieStore.get(DEMO_CHECKIN_KEY)?.value,
   );
@@ -529,41 +533,57 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
     teamPageData: mapTeamPageData({
       teamId: demoTribes[0].id,
       teamName: demoTribes[0].name,
-      weekDays: getWeekDateKeys().map((date) => ({
+      weekDays: weekDates.map((date) => ({
         date,
         checkedInUserIds:
-          date === "2026-03-24"
+          date === recentWeekDates[4]
             ? ["u2", "u4"]
-            : date === "2026-03-23"
+            : date === recentWeekDates[3]
               ? [demoProfile.id, "u2", "u4"]
-              : date === "2026-03-22"
+              : date === recentWeekDates[2]
                 ? ["u2"]
-                : date === "2026-03-21"
+                : date === recentWeekDates[1]
                   ? [demoProfile.id, "u2", "u4"]
-                  : date === "2026-03-20"
+                  : date === recentWeekDates[0]
                     ? [demoProfile.id, "u2", "u3", "u4"]
                     : [],
       })),
-      monthDays: getMonthDateKeys(new Date("2026-03-24")).map((date) => ({
+      monthDays: monthDates.map((date) => ({
         date,
         checkedInUserIds:
-          date === "2026-03-20"
+          date === recentMonthDates[0]
             ? [demoProfile.id, "u2", "u3", "u4"]
-            : date === "2026-03-21"
+            : date === recentMonthDates[1]
               ? [demoProfile.id, "u2", "u4"]
-              : date === "2026-03-22"
+              : date === recentMonthDates[2]
                 ? ["u2"]
-                : date === "2026-03-23"
+                : date === recentMonthDates[3]
                   ? [demoProfile.id, "u2", "u4"]
-                  : date === "2026-03-24"
+                  : date === recentMonthDates[4]
                     ? ["u2", "u4"]
                     : [],
       })),
       members: [
-        { userId: demoProfile.id, name: "Mark", checkedInDates: ["2026-03-20", "2026-03-21", "2026-03-23"] },
-        { userId: "u2", name: "Ariana", checkedInDates: ["2026-03-20", "2026-03-21", "2026-03-22", "2026-03-23", "2026-03-24"] },
-        { userId: "u3", name: "Jay", checkedInDates: ["2026-03-20"] },
-        { userId: "u4", name: "Mina", checkedInDates: ["2026-03-20", "2026-03-21", "2026-03-23", "2026-03-24"] },
+        {
+          userId: demoProfile.id,
+          name: "Mark",
+          checkedInDates: [recentMonthDates[0], recentMonthDates[1], recentMonthDates[3]].filter(Boolean),
+        },
+        {
+          userId: "u2",
+          name: "Ariana",
+          checkedInDates: recentMonthDates.filter(Boolean),
+        },
+        {
+          userId: "u3",
+          name: "Jay",
+          checkedInDates: [recentMonthDates[0]].filter(Boolean),
+        },
+        {
+          userId: "u4",
+          name: "Mina",
+          checkedInDates: [recentMonthDates[0], recentMonthDates[1], recentMonthDates[3], recentMonthDates[4]].filter(Boolean),
+        },
       ],
     }),
     organizationRankings: [],
