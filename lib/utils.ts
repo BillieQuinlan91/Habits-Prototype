@@ -44,6 +44,26 @@ export function formatDayLabel(dateString: string) {
   return format(parseISO(dateString), "EEE d");
 }
 
+export function formatIdentityLabel(identity?: string | null) {
+  const value = identity?.trim();
+
+  if (!value) {
+    return "I am someone who keeps my promises.";
+  }
+
+  const lower = value.toLowerCase();
+
+  if (lower.startsWith("i am")) {
+    return value;
+  }
+
+  if (lower.startsWith("someone who")) {
+    return `I am ${value.charAt(0).toLowerCase()}${value.slice(1)}`;
+  }
+
+  return `I am ${value}`;
+}
+
 export function isSundayLocal(date = new Date()) {
   return isSunday(date);
 }

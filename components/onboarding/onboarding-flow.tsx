@@ -16,7 +16,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { OnboardingState, Tribe } from "@/lib/types";
-import { cn, toDateKey } from "@/lib/utils";
+import { cn, formatIdentityLabel, toDateKey } from "@/lib/utils";
 
 const initialState: OnboardingState = {
   fullName: "",
@@ -245,7 +245,7 @@ export function OnboardingFlow({
                   )}
                 >
                   <div className="flex items-center justify-between gap-4">
-                    <span className="font-medium">{preset}</span>
+                    <span className="font-medium">{preset === "Custom" ? preset : formatIdentityLabel(preset)}</span>
                     {selected ? <Check className="h-4 w-4 text-accent" /> : null}
                   </div>
                 </button>
@@ -389,7 +389,7 @@ export function OnboardingFlow({
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Your first-week focus</p>
               <div>
-                <p className="font-medium">{identityLabel}</p>
+                <p className="font-medium">{formatIdentityLabel(identityLabel)}</p>
                 <p className="mt-2 text-sm text-foreground/58">{habitLabel}</p>
                 <p className="mt-1 text-sm text-foreground/48">Minimum version: {minimumLabel}</p>
               </div>

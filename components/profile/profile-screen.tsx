@@ -15,6 +15,7 @@ import { signOutAction } from "@/lib/data/actions";
 import { IntegrationInterest, NotificationPreference, Profile, UserHabit } from "@/lib/types";
 import { hasSupabaseEnv, isForcedDemoMode } from "@/lib/supabase/env";
 import { INTEGRATION_OPTIONS } from "@/lib/constants";
+import { formatIdentityLabel } from "@/lib/utils";
 
 export function ProfileScreen({
   profile,
@@ -239,7 +240,7 @@ export function ProfileScreen({
             {profile?.full_name ?? "Your profile"}
           </h2>
           <p className="mt-2 text-sm text-foreground/58">
-            {profile?.identity_label ?? profile?.email}
+            {profile?.identity_label ? formatIdentityLabel(profile.identity_label) : profile?.email}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

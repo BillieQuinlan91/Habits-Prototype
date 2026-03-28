@@ -21,7 +21,7 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { CircleDashboard, PostCheckInPopupState, Profile, TodayHabitItem } from "@/lib/types";
-import { cn, getWeekWindow } from "@/lib/utils";
+import { cn, formatIdentityLabel, getWeekWindow } from "@/lib/utils";
 
 type CheckInAcknowledgmentState = "idle" | "acknowledging";
 
@@ -236,7 +236,7 @@ export function TodayScreen({
             <p className="text-xs uppercase tracking-[0.2em]">Identity</p>
           </div>
           <p className="font-display text-2xl font-normal leading-tight tracking-tight">
-            {profile?.identity_label ?? "I am someone who keeps my promises."}
+            {formatIdentityLabel(profile?.identity_label)}
           </p>
         </Card>
       </div>
