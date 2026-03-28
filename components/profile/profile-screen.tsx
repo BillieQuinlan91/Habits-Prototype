@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
+import { writeDemoRemovedHabitId } from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/lib/data/actions";
 import { IntegrationInterest, NotificationPreference, Profile, UserHabit } from "@/lib/types";
@@ -146,6 +147,7 @@ export function ProfileScreen({
     }
 
     if (isDemo || isForcedDemoMode() || !hasSupabaseEnv()) {
+      writeDemoRemovedHabitId(habitId);
       return;
     }
 

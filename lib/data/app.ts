@@ -14,8 +14,9 @@ import {
   DEMO_CHECKIN_KEY,
   DEMO_HABIT_LOG_KEY,
   DEMO_MILESTONES_KEY,
+  DEMO_REMOVED_HABITS_KEY,
 } from "@/lib/demo/overrides";
-import { deriveHabitJourney, getCurrentJourneyHabitId } from "@/lib/habit-journey";
+import { deriveHabitJourney, getAvailableHabitSlots, getCurrentJourneyHabitId } from "@/lib/habit-journey";
 import { mapTeamPageData } from "@/lib/team/teamMappers";
 import { calculateStreak, calculateUserWeeklyScore } from "@/lib/score";
 import { isForcedDemoMode } from "@/lib/supabase/env";
@@ -45,6 +46,7 @@ type AppBootstrap = {
   habitJourneys: HabitJourneyProgress[];
   currentJourneyHabitId: string | null;
   canAddSecondHabit: boolean;
+  availableHabitSlots: number;
   templates: HabitTemplate[];
   organizations: { id: string; name: string }[];
   tribes: Tribe[];
@@ -80,6 +82,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       habitJourneys: [],
       currentJourneyHabitId: null,
       canAddSecondHabit: false,
+      availableHabitSlots: 1,
       templates: [],
       organizations: demoOrganizations,
       tribes: [],
@@ -152,6 +155,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
     habitJourneys,
     currentJourneyHabitId,
     canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
+    availableHabitSlots: getAvailableHabitSlots(habitJourneys),
     templates: (templatesResult.data ?? []) as HabitTemplate[],
     organizations: (organizationsResult.data ?? []) as { id: string; name: string }[],
     tribes: ((tribesResult.data ?? []) as Array<Tribe & { organization_name?: string }>).map((tribe) => ({
@@ -541,7 +545,8 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
   }>(cookieStore.get(DEMO_HABIT_LOG_KEY)?.value).filter((entry) => entry.logDate === today);
   const demoMilestones = readDemoCookieArray<HabitMilestoneUnlock>(cookieStore.get(DEMO_MILESTONES_KEY)?.value);
   const demoAdditionalHabits = readDemoCookieArray<UserHabit>(cookieStore.get(DEMO_ADDITIONAL_HABITS_KEY)?.value);
-  const allDemoHabits = [...demoUserHabits, ...demoAdditionalHabits];
+  const removedHabitIds = new Set(readDemoCookieArray<string>(cookieStore.get(DEMO_REMOVED_HABITS_KEY)?.value));
+  const allDemoHabits = [...demoUserHabits, ...demoAdditionalHabits].filter((habit) => !removedHabitIds.has(habit.id));
 
   const habits: TodayHabitItem[] = allDemoHabits.map((habit) => {
     const baseLog = demoHabitLogs.find((log) => log.user_habit_id === habit.id && log.log_date === today) ?? null;
@@ -650,6 +655,7 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
     habitJourneys,
     currentJourneyHabitId,
     canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
+    availableHabitSlots: getAvailableHabitSlots(habitJourneys),
     templates: demoHabitTemplates,
     organizations: demoOrganizations,
     tribes: demoTribes,

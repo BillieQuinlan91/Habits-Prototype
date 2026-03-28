@@ -22,7 +22,13 @@ import {
   writeDemoMilestoneUnlock,
   writeDemoSocialActivity,
 } from "@/lib/demo/overrides";
-import { deriveHabitJourney, getCurrentJourneyHabitId, getNewlyUnlockedMilestone } from "@/lib/habit-journey";
+import {
+  deriveHabitJourney,
+  getAvailableHabitSlots,
+  getCurrentJourneyHabitId,
+  getNewlyUnlockedMilestone,
+  MAX_ACTIVE_HABITS,
+} from "@/lib/habit-journey";
 import { createClient } from "@/lib/supabase/client";
 import { hasSeenSupportDigest, markSupportDigestSeen } from "@/lib/support";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -129,12 +135,14 @@ function renderFullScreenConfetti(colors: string[]) {
 function AddHabitComposer({
   draft,
   saving,
+  nextHabitLabel,
   onChange,
   onSave,
   onCancel,
 }: {
   draft: AddHabitDraft;
   saving: boolean;
+  nextHabitLabel: string;
   onChange: (patch: Partial<AddHabitDraft>) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -144,11 +152,11 @@ function AddHabitComposer({
       <div className="space-y-2">
         <div className="flex items-center gap-2 text-accent">
           <Plus className="h-4 w-4" />
-          <p className="text-xs uppercase tracking-[0.2em]">Second habit</p>
+          <p className="text-xs uppercase tracking-[0.2em]">{nextHabitLabel}</p>
         </div>
         <h3 className="font-display text-2xl font-normal tracking-tight">Add another habit.</h3>
         <p className="text-sm text-foreground/62">
-          Start small again. The second habit gets its own journey from day one.
+          Start small again. This habit gets its own journey from day one.
         </p>
       </div>
 
@@ -218,7 +226,7 @@ export function TodayScreen({
   historyLogs,
   habitJourneys,
   currentJourneyHabitId,
-  canAddSecondHabit,
+  availableHabitSlots,
   circleDashboard,
   receivedSupportDigest,
   isDemo = false,
@@ -228,7 +236,7 @@ export function TodayScreen({
   historyLogs: HabitLog[];
   habitJourneys: HabitJourneyProgress[];
   currentJourneyHabitId: string | null;
-  canAddSecondHabit: boolean;
+  availableHabitSlots: number;
   circleDashboard: CircleDashboard | null;
   receivedSupportDigest: ReceivedSupportDigest | null;
   isDemo?: boolean;
@@ -264,6 +272,13 @@ export function TodayScreen({
   }, [currentJourneyHabitId, journeys]);
   const visibleCircleDashboard = isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard;
   const isAcknowledging = acknowledgingHabitId !== null;
+  const derivedHabitSlotLimit = useMemo(
+    () => Math.max(availableHabitSlots, getAvailableHabitSlots(journeys)),
+    [availableHabitSlots, journeys],
+  );
+  const canAddAnotherHabit = orderedItems.length < derivedHabitSlotLimit && orderedItems.length < MAX_ACTIVE_HABITS;
+  const nextHabitIndex = Math.min(orderedItems.length + 1, MAX_ACTIVE_HABITS);
+  const nextHabitLabel = nextHabitIndex === 2 ? "Second habit" : nextHabitIndex === 3 ? "Third habit" : "Another habit";
 
   useEffect(() => {
     setItems(isDemo ? applyDemoHabitOverride(habits) : habits);
@@ -328,6 +343,72 @@ export function TodayScreen({
     nextUnlocks: HabitMilestoneUnlock[],
   ) {
     return nextItems.map((habit) => deriveHabitJourney(habit, nextLogs, nextUnlocks));
+  }
+
+  async function handleCompletedHabitFlow(
+    habit: TodayHabitItem,
+    nextItems: TodayHabitItem[],
+    nextLogs: HabitLog[],
+    baseJourneys: HabitJourneyProgress[],
+  ) {
+    if (receivedSupportDigest) {
+      markSupportDigestSeen(receivedSupportDigest);
+      setShowSupportDigest(false);
+    }
+
+    const habitJourney = baseJourneys.find((journey) => journey.habitId === habit.id) ?? null;
+    const unlockedMilestone = habitJourney ? getNewlyUnlockedMilestone(habitJourney) : null;
+    let finalJourneys = baseJourneys;
+
+    if (unlockedMilestone) {
+      const nextUnlockEntry: HabitMilestoneUnlock = {
+        id: `${habit.id}-${unlockedMilestone.phase}-${Date.now()}`,
+        user_id: habit.user_id,
+        user_habit_id: habit.id,
+        milestone_phase: unlockedMilestone.phase,
+        unlocked_at: new Date().toISOString(),
+      };
+
+      const persistedUnlock = await persistMilestoneUnlock(nextUnlockEntry);
+      if (persistedUnlock) {
+        const nextUnlocks = [...milestoneUnlocks, nextUnlockEntry];
+        setMilestoneUnlocks(nextUnlocks);
+        finalJourneys = recalculateJourneys(nextItems, nextLogs, nextUnlocks);
+        setJourneys(finalJourneys);
+      }
+    }
+
+    const allHabitsCompleted = nextItems.every((item) => Boolean(item.log?.completed));
+    const socialPopupState = allHabitsCompleted
+      ? buildPostCheckInState(visibleCircleDashboard)
+      : ({ kind: "idle" } as PostCheckInPopupState);
+    queuedPopupRef.current = socialPopupState;
+    setSelectedEmoji(null);
+    setSharedMessage("");
+    setAcknowledgingHabitId(habit.id);
+
+    if (popupTimeoutRef.current) {
+      window.clearTimeout(popupTimeoutRef.current);
+    }
+
+    popupTimeoutRef.current = window.setTimeout(() => {
+      setAcknowledgingHabitId(null);
+      const latestJourney = finalJourneys.find((journey) => journey.habitId === habit.id);
+      const latestMilestone =
+        unlockedMilestone && latestJourney
+          ? latestJourney.milestones.find((milestone) => milestone.phase === unlockedMilestone.phase) ?? null
+          : null;
+
+      if (latestMilestone?.isUnlocked) {
+        setMilestonePopup({
+          milestone: latestMilestone,
+          habitName: habit.name,
+        });
+        return;
+      }
+
+      releaseQueuedPopup();
+    }, ACKNOWLEDGMENT_DELAY_MS);
   }
 
   async function persistLog(
@@ -428,64 +509,7 @@ export function TodayScreen({
       return;
     }
 
-    if (receivedSupportDigest) {
-      markSupportDigestSeen(receivedSupportDigest);
-      setShowSupportDigest(false);
-    }
-
-    const habitJourney = baseJourneys.find((journey) => journey.habitId === habit.id) ?? null;
-    const unlockedMilestone = habitJourney ? getNewlyUnlockedMilestone(habitJourney) : null;
-    let finalJourneys = baseJourneys;
-
-    if (unlockedMilestone) {
-      const nextUnlockEntry: HabitMilestoneUnlock = {
-        id: `${habit.id}-${unlockedMilestone.phase}-${Date.now()}`,
-        user_id: habit.user_id,
-        user_habit_id: habit.id,
-        milestone_phase: unlockedMilestone.phase,
-        unlocked_at: new Date().toISOString(),
-      };
-
-      const persistedUnlock = await persistMilestoneUnlock(nextUnlockEntry);
-      if (persistedUnlock) {
-        const nextUnlocks = [...milestoneUnlocks, nextUnlockEntry];
-        setMilestoneUnlocks(nextUnlocks);
-        finalJourneys = recalculateJourneys(nextItems, nextLogs, nextUnlocks);
-        setJourneys(finalJourneys);
-      }
-    }
-
-    const allHabitsCompleted = nextItems.every((item) => Boolean(item.log?.completed));
-    const socialPopupState = allHabitsCompleted
-      ? buildPostCheckInState(visibleCircleDashboard)
-      : ({ kind: "idle" } as PostCheckInPopupState);
-    queuedPopupRef.current = socialPopupState;
-    setSelectedEmoji(null);
-    setSharedMessage("");
-    setAcknowledgingHabitId(habit.id);
-
-    if (popupTimeoutRef.current) {
-      window.clearTimeout(popupTimeoutRef.current);
-    }
-
-    popupTimeoutRef.current = window.setTimeout(() => {
-      setAcknowledgingHabitId(null);
-      const latestJourney = finalJourneys.find((journey) => journey.habitId === habit.id);
-      const latestMilestone =
-        unlockedMilestone && latestJourney
-          ? latestJourney.milestones.find((milestone) => milestone.phase === unlockedMilestone.phase) ?? null
-          : null;
-
-      if (latestMilestone?.isUnlocked) {
-        setMilestonePopup({
-          milestone: latestMilestone,
-          habitName: habit.name,
-        });
-        return;
-      }
-
-      releaseQueuedPopup();
-    }, ACKNOWLEDGMENT_DELAY_MS);
+    await handleCompletedHabitFlow(habit, nextItems, nextLogs, baseJourneys);
   }
 
   async function updateProgress(habitId: string, rawValue: string) {
@@ -497,12 +521,13 @@ export function TodayScreen({
     const previousItems = items;
     const previousLogs = logs;
     const previousJourneys = journeys;
+    const wasCompleted = Boolean(habit.log?.completed);
     const nextProgressValue = rawValue === "" ? null : Number(rawValue);
     const targetReached =
       habit.target_value !== null &&
       nextProgressValue !== null &&
       nextProgressValue >= habit.target_value;
-    const nextCompleted = habit.log?.completed ?? targetReached;
+    const nextCompleted = Boolean(habit.log?.completed) || targetReached;
     const nextLog = buildNextLog(habit, nextCompleted, nextProgressValue);
     const nextItems = withUpdatedLog(items, habit.id, nextLog);
     const nextLogs = withUpdatedHistory(nextLog, logs);
@@ -519,11 +544,21 @@ export function TodayScreen({
       return;
     }
 
-    setJourneys(recalculateJourneys(nextItems, nextLogs, milestoneUnlocks));
+    const baseJourneys = recalculateJourneys(nextItems, nextLogs, milestoneUnlocks);
+    setJourneys(baseJourneys);
+
+    if (!wasCompleted && nextCompleted) {
+      await handleCompletedHabitFlow(habit, nextItems, nextLogs, baseJourneys);
+    }
   }
 
-  async function saveSecondHabit() {
+  async function saveAdditionalHabit() {
     if (!profile) {
+      return;
+    }
+
+    if (!canAddAnotherHabit) {
+      setFeedback("You can unlock another habit after completing a full 75-day streak at 80% consistency.");
       return;
     }
 
@@ -605,7 +640,7 @@ export function TodayScreen({
       setJourneys(nextJourneys);
       setShowAddHabitComposer(false);
       setNewHabitDraft(EMPTY_HABIT_DRAFT);
-      releaseQueuedPopup();
+      queuedPopupRef.current = { kind: "idle" };
     } catch (saveError) {
       setFeedback(saveError instanceof Error ? saveError.message : "Unable to add that habit right now.");
     } finally {
@@ -767,13 +802,14 @@ export function TodayScreen({
         })}
       </div>
 
-      {(canAddSecondHabit || journeys.some((journey) => journey.canAddSecondHabit)) && orderedItems.length < 2 ? (
+      {canAddAnotherHabit ? (
         showAddHabitComposer ? (
           <AddHabitComposer
             draft={newHabitDraft}
             saving={savingNewHabit}
+            nextHabitLabel={nextHabitLabel}
             onChange={(patch) => setNewHabitDraft((current) => ({ ...current, ...patch }))}
-            onSave={() => void saveSecondHabit()}
+            onSave={() => void saveAdditionalHabit()}
             onCancel={() => {
               setShowAddHabitComposer(false);
               setNewHabitDraft(EMPTY_HABIT_DRAFT);
@@ -784,8 +820,10 @@ export function TodayScreen({
           <Card className="space-y-3 border-accent/20 bg-accent/6">
             <div className="space-y-2">
               <p className="text-xs uppercase tracking-[0.2em] text-accent">Unlocked at day 75</p>
-              <h3 className="font-display text-2xl font-normal tracking-tight">You can add a second habit.</h3>
-              <p className="text-sm text-foreground/62">The first one stays. The next one starts its own journey.</p>
+              <h3 className="font-display text-2xl font-normal tracking-tight">You can add another habit.</h3>
+              <p className="text-sm text-foreground/62">
+                Your current habits stay. The next one starts its own journey from day one.
+              </p>
             </div>
             <Button className="w-full" onClick={() => setShowAddHabitComposer(true)}>
               <Plus className="mr-2 h-4 w-4" />
@@ -824,6 +862,7 @@ export function TodayScreen({
         open={Boolean(milestonePopup)}
         milestone={milestonePopup?.milestone ?? null}
         habitName={milestonePopup?.habitName ?? null}
+        allowAddHabit={canAddAnotherHabit}
         onClose={() => {
           setMilestonePopup(null);
           releaseQueuedPopup();

@@ -39,7 +39,7 @@ export default async function TodayPage({
         historyLogs={bootstrap.historyLogs}
         habitJourneys={previewedJourney.habitJourneys}
         currentJourneyHabitId={previewedJourney.currentJourneyHabitId}
-        canAddSecondHabit={previewedJourney.canAddSecondHabit}
+        availableHabitSlots={bootstrap.availableHabitSlots}
         circleDashboard={bootstrap.circleDashboard}
         receivedSupportDigest={bootstrap.receivedSupportDigest}
         isDemo={bootstrap.isDemo}

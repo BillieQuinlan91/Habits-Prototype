@@ -40,6 +40,33 @@ export const HABIT_JOURNEY_MILESTONES: Array<{
   },
 ];
 
+export const MAX_ACTIVE_HABITS = 3;
+
+function getFinalMilestoneConfig() {
+  return HABIT_JOURNEY_MILESTONES.find((milestone) => milestone.phase === "day_75") ?? HABIT_JOURNEY_MILESTONES[2];
+}
+
+export function hasUnlockedAdditionalHabitSlotForCounts(completedDays: number, elapsedDays: number, consistencyPercent: number) {
+  const finalMilestone = getFinalMilestoneConfig();
+  return (
+    elapsedDays >= finalMilestone.targetDays &&
+    completedDays >= Math.ceil(finalMilestone.targetDays * finalMilestone.requiredConsistency) &&
+    consistencyPercent >= finalMilestone.requiredConsistency
+  );
+}
+
+export function hasUnlockedAdditionalHabitSlot(journey: HabitJourneyProgress) {
+  return hasUnlockedAdditionalHabitSlotForCounts(
+    journey.completedDays,
+    journey.elapsedDays,
+    journey.consistencyPercent,
+  );
+}
+
+export function getAvailableHabitSlots(journeys: HabitJourneyProgress[]) {
+  return Math.min(1 + journeys.filter((journey) => hasUnlockedAdditionalHabitSlot(journey)).length, MAX_ACTIVE_HABITS);
+}
+
 export function deriveHabitJourney(
   habit: UserHabit,
   logs: HabitLog[],
@@ -87,7 +114,7 @@ export function deriveHabitJourney(
     elapsedDays,
     completedDays,
     consistencyPercent,
-    canAddSecondHabit: milestones.some((milestone) => milestone.phase === "day_75" && milestone.isUnlocked),
+    canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(completedDays, elapsedDays, consistencyPercent),
     milestones,
     nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
   };
@@ -170,7 +197,11 @@ export function applyJourneyPreview(
       completedDays: config.completedDays,
       elapsedDays: config.elapsedDays,
       consistencyPercent,
-      canAddSecondHabit: preview === "day75",
+      canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(
+        config.completedDays,
+        config.elapsedDays,
+        consistencyPercent,
+      ),
       milestones,
       nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
     };
@@ -179,6 +210,6 @@ export function applyJourneyPreview(
   return {
     habitJourneys,
     currentJourneyHabitId: selectedHabitId,
-    canAddSecondHabit: preview === "day75" || habitJourneys.some((journey) => journey.canAddSecondHabit),
+    canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
   };
 }

@@ -6,6 +6,7 @@ const DEMO_SOCIAL_ACTIVITY_KEY = "becoming-demo-social-activity";
 export const DEMO_HABIT_LOG_KEY = "becoming-demo-habit-log";
 export const DEMO_MILESTONES_KEY = "becoming-demo-milestones";
 export const DEMO_ADDITIONAL_HABITS_KEY = "becoming-demo-additional-habits";
+export const DEMO_REMOVED_HABITS_KEY = "becoming-demo-removed-habits";
 
 function writeCookie(name: string, value: string) {
   if (typeof document === "undefined") {
@@ -216,6 +217,34 @@ export function writeDemoAdditionalHabit(habit: UserHabit) {
   const next = [...readDemoAdditionalHabits().filter((item) => item.id !== habit.id), habit];
   window.sessionStorage.setItem(DEMO_ADDITIONAL_HABITS_KEY, JSON.stringify(next));
   writeCookie(DEMO_ADDITIONAL_HABITS_KEY, JSON.stringify(next));
+}
+
+export function readDemoRemovedHabitIds(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.sessionStorage.getItem(DEMO_REMOVED_HABITS_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((value): value is string => typeof value === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeDemoRemovedHabitId(habitId: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const next = [...new Set([...readDemoRemovedHabitIds(), habitId])];
+  window.sessionStorage.setItem(DEMO_REMOVED_HABITS_KEY, JSON.stringify(next));
+  writeCookie(DEMO_REMOVED_HABITS_KEY, JSON.stringify(next));
 }
 
 export function readDemoSocialActivity(): Array<{ id: string; text: string }> {

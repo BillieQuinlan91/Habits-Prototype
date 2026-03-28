@@ -34,12 +34,14 @@ export function MilestonePopup({
   open,
   milestone,
   habitName,
+  allowAddHabit,
   onClose,
   onAddHabit,
 }: {
   open: boolean;
   milestone: HabitJourneyMilestone | null;
   habitName: string | null;
+  allowAddHabit: boolean;
   onClose: () => void;
   onAddHabit: () => void;
 }) {
@@ -73,7 +75,7 @@ export function MilestonePopup({
               {milestone.shortLabel} unlocked for {habitName}. {bodyCopy}
             </p>
           </div>
-          {milestone.phase === "day_75" ? (
+          {milestone.phase === "day_75" && allowAddHabit ? (
             <div className="flex gap-2">
               <Button variant="secondary" className="flex-1" onClick={onClose}>
                 Keep going
