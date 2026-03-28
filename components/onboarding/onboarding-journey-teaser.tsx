@@ -3,11 +3,11 @@
 import { cn } from "@/lib/utils";
 
 const MEMBER_COLORS = [
-  "bg-[#6D5BD0]",
-  "bg-[#8273D8]",
-  "bg-[#9A8BE2]",
-  "bg-[#B7ABEA]",
-  "bg-[#D7CFF4]",
+  "bg-accent",
+  "bg-accent/88",
+  "bg-accent/72",
+  "bg-accent/56",
+  "bg-accent/36",
 ] as const;
 
 const STEP_ACTIVE_COUNTS = [1, 2, 3, 4, 4, 5] as const;
@@ -24,7 +24,7 @@ export function OnboardingJourneyTeaser({
     <div className="rounded-[28px] bg-surface/50 px-4 py-4">
       <div className="relative mx-auto max-w-[320px]">
         <div className="absolute left-6 right-6 top-1/2 h-px -translate-y-1/2 bg-foreground/10" />
-        <div className="absolute left-8 right-8 top-1/2 h-8 -translate-y-1/2 rounded-full bg-[linear-gradient(90deg,rgba(154,139,226,0.05),rgba(154,139,226,0.14),rgba(154,139,226,0.05))]" />
+        <div className="absolute left-8 right-8 top-1/2 h-8 -translate-y-1/2 rounded-full bg-accent/8" />
         <div className="relative flex items-center justify-between">
           {MEMBER_COLORS.map((color, index) => {
             const isActive = index < activeCount;
@@ -41,7 +41,7 @@ export function OnboardingJourneyTeaser({
                     "flex items-center justify-center rounded-full border transition-all duration-500 ease-out",
                     index === 2 ? "h-14 w-14" : "h-11 w-11",
                     isActive
-                      ? "border-white/55 shadow-[0_10px_24px_rgba(109,91,208,0.2)]"
+                      ? "border-white/55 shadow-[0_10px_24px_rgba(108,140,245,0.18)]"
                       : isPending
                         ? "border-accent/25 bg-card/95"
                         : "border-border/70 bg-card/78",
@@ -64,7 +64,7 @@ export function OnboardingJourneyTeaser({
                   className={cn(
                     "h-1.5 rounded-full transition-all duration-500 ease-out",
                     index === 2 ? "w-8" : "w-6",
-                    isActive ? "bg-success/65" : isPending ? "bg-accent/28" : "bg-foreground/12",
+                    isActive ? "bg-accent/42" : isPending ? "bg-accent/24" : "bg-foreground/12",
                   )}
                 />
               </div>
