@@ -51,7 +51,7 @@ export function TeamRing({
   return (
     <div className="space-y-5">
       <div className="flex items-start justify-between gap-4">
-        <div>
+        <div className="space-y-1.5">
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">{eyebrow}</p>
           <h2 className="font-display text-3xl font-normal tracking-tight">{title}</h2>
         </div>
