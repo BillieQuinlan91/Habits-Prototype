@@ -4,11 +4,11 @@ import { cn } from "@/lib/utils";
 
 const STEP_ACTIVE_COUNTS = [1, 2, 3, 4, 4, 5] as const;
 const ACTIVE_MEMBER_STYLES = [
-  { backgroundColor: "#5E9C7D", boxShadow: "0 10px 24px rgba(94,156,125,0.2)" },
-  { backgroundColor: "#6AA887", boxShadow: "0 10px 24px rgba(106,168,135,0.2)" },
-  { backgroundColor: "#78B493", boxShadow: "0 10px 24px rgba(120,180,147,0.2)" },
-  { backgroundColor: "#89C1A0", boxShadow: "0 10px 24px rgba(137,193,160,0.2)" },
-  { backgroundColor: "#9ACCAD", boxShadow: "0 10px 24px rgba(154,204,173,0.2)" },
+  { borderColor: "#5E9C7D", boxShadow: "0 10px 24px rgba(94,156,125,0.12)" },
+  { borderColor: "#6AA887", boxShadow: "0 10px 24px rgba(106,168,135,0.12)" },
+  { borderColor: "#78B493", boxShadow: "0 10px 24px rgba(120,180,147,0.12)" },
+  { borderColor: "#89C1A0", boxShadow: "0 10px 24px rgba(137,193,160,0.12)" },
+  { borderColor: "#9ACCAD", boxShadow: "0 10px 24px rgba(154,204,173,0.12)" },
 ] as const;
 
 export function OnboardingJourneyTeaser({
@@ -38,10 +38,10 @@ export function OnboardingJourneyTeaser({
               >
                 <div
                   className={cn(
-                    "flex items-center justify-center rounded-full border transition-all duration-500 ease-out",
+                    "flex items-center justify-center rounded-full border-[3px] transition-all duration-500 ease-out",
                     index === 2 ? "h-14 w-14" : "h-11 w-11",
                     isActive
-                      ? "border-white/55"
+                      ? "bg-card/98"
                       : isPending
                         ? "border-success/25 bg-card/95"
                         : "border-border/70 bg-card/78",
@@ -53,7 +53,7 @@ export function OnboardingJourneyTeaser({
                       "rounded-full transition-all duration-500 ease-out",
                       index === 2 ? "h-4 w-4" : "h-3 w-3",
                       isActive
-                        ? "bg-white/88"
+                        ? "bg-card"
                         : isPending
                           ? "border border-success/24 bg-success/10"
                           : "bg-foreground/14",
