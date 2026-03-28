@@ -68,6 +68,41 @@ export type HabitLog = {
   updated_at?: string;
 };
 
+export type HabitMilestonePhase = "day_7" | "day_30" | "day_75";
+
+export type HabitMilestoneUnlock = {
+  id: string;
+  user_id: string;
+  user_habit_id: string;
+  milestone_phase: HabitMilestonePhase;
+  unlocked_at: string;
+  created_at?: string;
+};
+
+export type HabitJourneyMilestone = {
+  phase: HabitMilestonePhase;
+  title: string;
+  shortLabel: string;
+  targetDays: number;
+  requiredConsistency: number;
+  consistencyPercent: number;
+  requiredCompletedDays: number;
+  isUnlocked: boolean;
+  unlockedAt: string | null;
+  isEligibleToday: boolean;
+};
+
+export type HabitJourneyProgress = {
+  habitId: string;
+  habitName: string;
+  elapsedDays: number;
+  completedDays: number;
+  consistencyPercent: number;
+  canAddSecondHabit: boolean;
+  milestones: HabitJourneyMilestone[];
+  nextMilestone: HabitJourneyMilestone | null;
+};
+
 export type WeeklyMemberScore = {
   user_id: string;
   full_name: string;

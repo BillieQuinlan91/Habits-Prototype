@@ -61,19 +61,20 @@ export const demoUserHabits: UserHabit[] = [
     target_unit: null,
     minimum_label: "5 minutes of deep work",
     is_primary: true,
-    commitment_start_date: "2026-03-20",
-    commitment_length_days: 7,
+    commitment_start_date: "2026-03-21",
+    commitment_length_days: 75,
     source_type: "manual",
     is_active: true,
   },
 ];
 
 export const demoHabitLogs: HabitLog[] = [
-  { id: "l1", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-20", completed: true, progress_value: null, notes: null },
   { id: "l2", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-21", completed: true, progress_value: null, notes: null },
-  { id: "l3", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-22", completed: false, progress_value: null, notes: null },
-  { id: "l4", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-23", completed: true, progress_value: null, notes: null },
-  { id: "l5", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-24", completed: false, progress_value: null, notes: null },
+  { id: "l3", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-22", completed: true, progress_value: null, notes: null },
+  { id: "l4", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-23", completed: false, progress_value: null, notes: null },
+  { id: "l5", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-24", completed: true, progress_value: null, notes: null },
+  { id: "l6", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-25", completed: true, progress_value: null, notes: null },
+  { id: "l7", user_id: demoProfile.id, user_habit_id: "h1", log_date: "2026-03-26", completed: true, progress_value: null, notes: null },
 ];
 
 export const demoNotificationPreferences: NotificationPreference = {

@@ -24,6 +24,9 @@ export default async function TodayPage() {
       <TodayScreen
         profile={bootstrap.profile}
         habits={bootstrap.habits}
+        historyLogs={bootstrap.historyLogs}
+        habitJourneys={bootstrap.habitJourneys}
+        canAddSecondHabit={bootstrap.canAddSecondHabit}
         circleDashboard={bootstrap.circleDashboard}
         receivedSupportDigest={bootstrap.receivedSupportDigest}
         isDemo={bootstrap.isDemo}

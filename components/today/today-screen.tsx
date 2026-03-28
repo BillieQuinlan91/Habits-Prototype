@@ -3,31 +3,45 @@
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CircleUserRound, MessageCircleHeart, Target } from "lucide-react";
+import { CheckCircle2, CircleUserRound, MessageCircleHeart, Plus, Sparkles, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PostCheckInPopup } from "@/components/today/post-check-in-popup";
+import { MilestonePopup } from "@/components/today/milestone-popup";
 import { TeamRing } from "@/components/ui/team-ring";
 import {
-  applyDemoHabitOverride,
   applyDemoCheckinOverride,
+  applyDemoHabitOverride,
+  writeDemoAdditionalHabit,
   writeDemoCheckinStatus,
   writeDemoHabitLog,
+  writeDemoMilestoneUnlock,
   writeDemoSocialActivity,
 } from "@/lib/demo/overrides";
+import { deriveHabitJourney, getNewlyUnlockedMilestone } from "@/lib/habit-journey";
 import { createClient } from "@/lib/supabase/client";
 import { hasSeenSupportDigest, markSupportDigestSeen } from "@/lib/support";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { CircleDashboard, PostCheckInPopupState, Profile, ReceivedSupportDigest, TodayHabitItem } from "@/lib/types";
-import { cn, formatIdentityLabel, getWeekWindow } from "@/lib/utils";
-
-type CheckInAcknowledgmentState = "idle" | "acknowledging";
+import {
+  CircleDashboard,
+  HabitJourneyMilestone,
+  HabitJourneyProgress,
+  HabitLog,
+  HabitMilestoneUnlock,
+  PostCheckInPopupState,
+  Profile,
+  ReceivedSupportDigest,
+  TodayHabitItem,
+  UserHabit,
+} from "@/lib/types";
+import { cn, formatIdentityLabel, getWeekWindow, toDateKey } from "@/lib/utils";
 
 const ACKNOWLEDGMENT_DELAY_MS = 1500;
 const CONFETTI_COLORS = ["bg-success", "bg-accent", "bg-accent2", "bg-[#F0CDA8]", "bg-white/80"];
+const MILESTONE_CONFETTI_COLORS = ["bg-success", "bg-success/80", "bg-accent2", "bg-accent", "bg-[#F0CDA8]"];
 const CONFETTI_PIECES = [
   { left: "6%", delay: 0, rotate: -10 },
   { left: "14%", delay: 90, rotate: 18 },
@@ -42,15 +56,208 @@ const CONFETTI_PIECES = [
   { left: "93%", delay: 230, rotate: -24 },
 ] as const;
 
+type AddHabitDraft = {
+  name: string;
+  minimumLabel: string;
+  type: UserHabit["type"];
+  targetValue: string;
+  targetUnit: string;
+};
+
+type MilestonePopupState = {
+  milestone: HabitJourneyMilestone;
+  habitName: string;
+} | null;
+
+const EMPTY_HABIT_DRAFT: AddHabitDraft = {
+  name: "",
+  minimumLabel: "",
+  type: "binary",
+  targetValue: "",
+  targetUnit: "",
+};
+
+function extractMilestoneUnlocks(journeys: HabitJourneyProgress[], userId: string | null): HabitMilestoneUnlock[] {
+  if (!userId) {
+    return [];
+  }
+
+  return journeys.flatMap((journey) =>
+    journey.milestones
+      .filter((milestone) => milestone.unlockedAt)
+      .map((milestone) => ({
+        id: `${journey.habitId}-${milestone.phase}`,
+        user_id: userId,
+        user_habit_id: journey.habitId,
+        milestone_phase: milestone.phase,
+        unlocked_at: milestone.unlockedAt ?? new Date().toISOString(),
+      })),
+  );
+}
+
+function buildPostCheckInState(circleDashboard: CircleDashboard | null): PostCheckInPopupState {
+  const pendingTeammates =
+    circleDashboard?.members.filter((member) => !member.isCurrentUser && member.status === "pending") ?? [];
+
+  return pendingTeammates.length
+    ? { kind: "pending_teammates", teammates: pendingTeammates }
+    : { kind: "celebration" };
+}
+
+function renderFullScreenConfetti(colors: string[]) {
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-screen overflow-hidden motion-reduce:hidden">
+      {CONFETTI_PIECES.map((piece, index) => (
+        <span
+          key={`${piece.left}-${index}`}
+          className={cn(
+            "absolute top-0 h-4 w-2 rounded-full opacity-0 animate-confettiFall",
+            colors[index % colors.length],
+          )}
+          style={{
+            left: piece.left,
+            animationDelay: `${piece.delay}ms`,
+            transform: `rotate(${piece.rotate}deg)`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+function HabitJourneyRow({ journey }: { journey: HabitJourneyProgress | null }) {
+  if (!journey) {
+    return null;
+  }
+
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {journey.milestones.map((milestone) => (
+        <div
+          key={milestone.phase}
+          className={cn(
+            "rounded-2xl border px-3 py-3",
+            milestone.isUnlocked
+              ? "border-success/25 bg-success/10"
+              : journey.nextMilestone?.phase === milestone.phase
+                ? "border-accent/25 bg-accent/8"
+                : "border-border/70 bg-surface/60",
+          )}
+        >
+          <p className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">{milestone.shortLabel}</p>
+          <p className="mt-1 text-sm font-medium text-foreground/78">{milestone.title}</p>
+          <p className="mt-2 text-xs text-foreground/50">
+            {milestone.isUnlocked
+              ? "Unlocked"
+              : `${journey.completedDays}/${milestone.targetDays} days`}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AddHabitComposer({
+  draft,
+  saving,
+  onChange,
+  onSave,
+  onCancel,
+}: {
+  draft: AddHabitDraft;
+  saving: boolean;
+  onChange: (patch: Partial<AddHabitDraft>) => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <Card className="space-y-4 border-accent/20 bg-accent/6">
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 text-accent">
+          <Plus className="h-4 w-4" />
+          <p className="text-xs uppercase tracking-[0.2em]">Second habit</p>
+        </div>
+        <h3 className="font-display text-2xl font-normal tracking-tight">Add another habit.</h3>
+        <p className="text-sm text-foreground/62">
+          Start small again. The second habit gets its own journey from day one.
+        </p>
+      </div>
+
+      <Input
+        placeholder="Habit name"
+        value={draft.name}
+        onChange={(event) => onChange({ name: event.target.value })}
+      />
+      <Input
+        placeholder="Minimum version"
+        value={draft.minimumLabel}
+        onChange={(event) => onChange({ minimumLabel: event.target.value })}
+      />
+      <div className="grid grid-cols-3 gap-3">
+        <button
+          type="button"
+          className={cn(
+            "rounded-2xl border px-3 py-3 text-sm transition",
+            draft.type === "binary" ? "border-accent bg-accent/8" : "border-border bg-card/80",
+          )}
+          onClick={() => onChange({ type: "binary", targetValue: "", targetUnit: "" })}
+        >
+          Binary
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "col-span-2 rounded-2xl border px-3 py-3 text-sm transition",
+            draft.type === "measurable" ? "border-accent bg-accent/8" : "border-border bg-card/80",
+          )}
+          onClick={() => onChange({ type: "measurable" })}
+        >
+          Measurable
+        </button>
+      </div>
+      {draft.type === "measurable" ? (
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            type="number"
+            inputMode="numeric"
+            placeholder="Target"
+            value={draft.targetValue}
+            onChange={(event) => onChange({ targetValue: event.target.value })}
+          />
+          <Input
+            placeholder="Unit"
+            value={draft.targetUnit}
+            onChange={(event) => onChange({ targetUnit: event.target.value })}
+          />
+        </div>
+      ) : null}
+      <div className="flex gap-2">
+        <Button variant="secondary" className="flex-1" onClick={onCancel} disabled={saving}>
+          Not now
+        </Button>
+        <Button className="flex-1" onClick={onSave} disabled={saving}>
+          {saving ? "Adding..." : "Add habit"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 export function TodayScreen({
   profile,
   habits,
+  historyLogs,
+  habitJourneys,
+  canAddSecondHabit,
   circleDashboard,
   receivedSupportDigest,
   isDemo = false,
 }: {
   profile: Profile | null;
   habits: TodayHabitItem[];
+  historyLogs: HabitLog[];
+  habitJourneys: HabitJourneyProgress[];
+  canAddSecondHabit: boolean;
   circleDashboard: CircleDashboard | null;
   receivedSupportDigest: ReceivedSupportDigest | null;
   isDemo?: boolean;
@@ -58,28 +265,41 @@ export function TodayScreen({
   const router = useRouter();
   const todayLabel = format(new Date(), "EEEE d MMMM");
   const [items, setItems] = useState(() => (isDemo ? applyDemoHabitOverride(habits) : habits));
+  const [logs, setLogs] = useState(historyLogs);
+  const [journeys, setJourneys] = useState(habitJourneys);
+  const [milestoneUnlocks, setMilestoneUnlocks] = useState(() =>
+    extractMilestoneUnlocks(habitJourneys, profile?.id ?? null),
+  );
   const [feedback, setFeedback] = useState<string | null>(null);
   const [popupState, setPopupState] = useState<PostCheckInPopupState>({ kind: "idle" });
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [sharedMessage, setSharedMessage] = useState("");
-  const [acknowledgmentState, setAcknowledgmentState] = useState<CheckInAcknowledgmentState>("idle");
+  const [acknowledgingHabitId, setAcknowledgingHabitId] = useState<string | null>(null);
   const [showSupportDigest, setShowSupportDigest] = useState(false);
+  const [milestonePopup, setMilestonePopup] = useState<MilestonePopupState>(null);
+  const [showAddHabitComposer, setShowAddHabitComposer] = useState(false);
+  const [newHabitDraft, setNewHabitDraft] = useState<AddHabitDraft>(EMPTY_HABIT_DRAFT);
+  const [savingNewHabit, setSavingNewHabit] = useState(false);
   const popupTimeoutRef = useRef<number | null>(null);
+  const queuedPopupRef = useRef<PostCheckInPopupState>({ kind: "idle" });
 
-  const focusHabit = useMemo(
-    () => items.find((habit) => habit.is_primary) ?? items[0] ?? null,
+  const orderedItems = useMemo(
+    () => [...items].sort((a, b) => Number(b.is_primary ?? false) - Number(a.is_primary ?? false)),
     [items],
   );
-  const visibleCircleDashboard = useMemo(
-    () => (isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard),
-    [circleDashboard, isDemo],
+  const journeyByHabitId = useMemo(
+    () => new Map(journeys.map((journey) => [journey.habitId, journey])),
+    [journeys],
   );
-  const isAcknowledging = acknowledgmentState === "acknowledging";
-  const isCheckedIn = Boolean(focusHabit?.log?.completed);
+  const visibleCircleDashboard = isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard;
+  const isAcknowledging = acknowledgingHabitId !== null;
 
   useEffect(() => {
     setItems(isDemo ? applyDemoHabitOverride(habits) : habits);
-  }, [habits, isDemo]);
+    setLogs(historyLogs);
+    setJourneys(habitJourneys);
+    setMilestoneUnlocks(extractMilestoneUnlocks(habitJourneys, profile?.id ?? null));
+  }, [habits, habitJourneys, historyLogs, isDemo, profile?.id]);
 
   useEffect(() => {
     if (!receivedSupportDigest?.hasNewSupport) {
@@ -98,27 +318,61 @@ export function TodayScreen({
     };
   }, []);
 
+  function releaseQueuedPopup() {
+    const next = queuedPopupRef.current;
+    queuedPopupRef.current = { kind: "idle" };
+    if (next.kind !== "idle") {
+      setPopupState(next);
+    }
+  }
+
   function buildNextLog(habit: TodayHabitItem, nextCompleted: boolean, nextProgressValue: number | null) {
     return {
       id: habit.log?.id ?? `temp-${habit.id}`,
       user_id: habit.user_id,
       user_habit_id: habit.id,
-      log_date: new Date().toISOString().slice(0, 10),
+      log_date: toDateKey(),
       completed: nextCompleted,
       progress_value: nextProgressValue,
       notes: null,
     };
   }
 
-  async function persistLog(habit: TodayHabitItem, completedValue: boolean, progressValue: number | null) {
+  function withUpdatedLog(habitsToUpdate: TodayHabitItem[], habitId: string, nextLog: HabitLog) {
+    return habitsToUpdate.map((habit) => (habit.id === habitId ? { ...habit, log: nextLog } : habit));
+  }
+
+  function withUpdatedHistory(nextLog: HabitLog, currentLogs: HabitLog[]) {
+    return [
+      ...currentLogs.filter(
+        (log) => !(log.user_habit_id === nextLog.user_habit_id && log.log_date === nextLog.log_date),
+      ),
+      nextLog,
+    ];
+  }
+
+  function recalculateJourneys(
+    nextItems: TodayHabitItem[],
+    nextLogs: HabitLog[],
+    nextUnlocks: HabitMilestoneUnlock[],
+  ) {
+    return nextItems.map((habit) => deriveHabitJourney(habit, nextLogs, nextUnlocks));
+  }
+
+  async function persistLog(
+    habit: TodayHabitItem,
+    completedValue: boolean,
+    progressValue: number | null,
+    nextItems: TodayHabitItem[],
+  ) {
     if (isDemo || !hasSupabaseEnv()) {
-      writeDemoCheckinStatus(completedValue ? "checked_in" : "pending");
       writeDemoHabitLog({
         habitId: habit.id,
         completed: completedValue,
         progressValue,
       });
-      return;
+      writeDemoCheckinStatus(nextItems.every((item) => Boolean(item.log?.completed)) ? "checked_in" : "pending");
+      return true;
     }
 
     const supabase = createClient();
@@ -126,91 +380,266 @@ export function TodayScreen({
       id: habit.log?.id,
       user_id: habit.user_id,
       user_habit_id: habit.id,
-      log_date: new Date().toISOString().slice(0, 10),
+      log_date: toDateKey(),
       completed: completedValue,
       progress_value: progressValue,
     });
 
     if (error) {
       setFeedback(error.message);
-      return;
+      return false;
     }
 
-    window.location.reload();
+    return true;
   }
 
-  async function toggleHabit() {
-    if (!focusHabit) {
+  async function persistMilestoneUnlock(entry: HabitMilestoneUnlock) {
+    if (isDemo || !hasSupabaseEnv()) {
+      writeDemoMilestoneUnlock(entry);
+      return true;
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("habit_milestones")
+      .upsert(
+        {
+          user_id: entry.user_id,
+          user_habit_id: entry.user_habit_id,
+          milestone_phase: entry.milestone_phase,
+          unlocked_at: entry.unlocked_at,
+        },
+        { onConflict: "user_habit_id,milestone_phase", ignoreDuplicates: true },
+      );
+
+    if (error) {
+      setFeedback(error.message);
+      return false;
+    }
+
+    return true;
+  }
+
+  async function toggleHabit(habitId: string) {
+    const habit = items.find((entry) => entry.id === habitId);
+    if (!habit) {
       return;
     }
 
-    const nextCompleted = !(focusHabit.log?.completed ?? false);
+    const previousItems = items;
+    const previousLogs = logs;
+    const previousJourneys = journeys;
+    const nextCompleted = !(habit.log?.completed ?? false);
     const nextProgressValue =
-      focusHabit.type === "measurable"
-        ? focusHabit.log?.progress_value ?? focusHabit.target_value ?? null
-        : focusHabit.log?.progress_value ?? null;
-
-    const next = items.map((habit) =>
-      habit.id === focusHabit.id
-        ? { ...habit, log: buildNextLog(habit, nextCompleted, nextProgressValue) }
-        : habit,
-    );
+      habit.type === "measurable"
+        ? habit.log?.progress_value ?? habit.target_value ?? null
+        : habit.log?.progress_value ?? null;
+    const nextLog = buildNextLog(habit, nextCompleted, nextProgressValue);
+    const nextItems = withUpdatedLog(items, habit.id, nextLog);
+    const nextLogs = withUpdatedHistory(nextLog, logs);
 
     setFeedback(null);
-    setItems(next);
-    await persistLog(focusHabit, nextCompleted, nextProgressValue);
-    if (nextCompleted) {
-      if (receivedSupportDigest) {
-        markSupportDigestSeen(receivedSupportDigest);
-        setShowSupportDigest(false);
-      }
+    setItems(nextItems);
+    setLogs(nextLogs);
 
-      const pendingTeammates =
-        visibleCircleDashboard?.members.filter((member) => !member.isCurrentUser && member.status === "pending") ?? [];
-
-      setSelectedEmoji(null);
-      setSharedMessage("");
-      setAcknowledgmentState("acknowledging");
-
-      if (popupTimeoutRef.current) {
-        window.clearTimeout(popupTimeoutRef.current);
-      }
-
-      popupTimeoutRef.current = window.setTimeout(() => {
-        setAcknowledgmentState("idle");
-        setPopupState(
-          pendingTeammates.length
-            ? { kind: "pending_teammates", teammates: pendingTeammates }
-            : { kind: "celebration" },
-        );
-      }, ACKNOWLEDGMENT_DELAY_MS);
-    }
-  }
-
-  async function updateProgress(rawValue: string) {
-    if (!focusHabit) {
+    const persisted = await persistLog(habit, nextCompleted, nextProgressValue, nextItems);
+    if (!persisted) {
+      setItems(previousItems);
+      setLogs(previousLogs);
+      setJourneys(previousJourneys);
       return;
     }
 
+    const baseJourneys = recalculateJourneys(nextItems, nextLogs, milestoneUnlocks);
+    setJourneys(baseJourneys);
+
+    if (!nextCompleted) {
+      return;
+    }
+
+    if (receivedSupportDigest) {
+      markSupportDigestSeen(receivedSupportDigest);
+      setShowSupportDigest(false);
+    }
+
+    const habitJourney = baseJourneys.find((journey) => journey.habitId === habit.id) ?? null;
+    const unlockedMilestone = habitJourney ? getNewlyUnlockedMilestone(habitJourney) : null;
+    let finalJourneys = baseJourneys;
+
+    if (unlockedMilestone) {
+      const nextUnlockEntry: HabitMilestoneUnlock = {
+        id: `${habit.id}-${unlockedMilestone.phase}-${Date.now()}`,
+        user_id: habit.user_id,
+        user_habit_id: habit.id,
+        milestone_phase: unlockedMilestone.phase,
+        unlocked_at: new Date().toISOString(),
+      };
+
+      const persistedUnlock = await persistMilestoneUnlock(nextUnlockEntry);
+      if (persistedUnlock) {
+        const nextUnlocks = [...milestoneUnlocks, nextUnlockEntry];
+        setMilestoneUnlocks(nextUnlocks);
+        finalJourneys = recalculateJourneys(nextItems, nextLogs, nextUnlocks);
+        setJourneys(finalJourneys);
+      }
+    }
+
+    const socialPopupState = buildPostCheckInState(visibleCircleDashboard);
+    queuedPopupRef.current = socialPopupState;
+    setSelectedEmoji(null);
+    setSharedMessage("");
+    setAcknowledgingHabitId(habit.id);
+
+    if (popupTimeoutRef.current) {
+      window.clearTimeout(popupTimeoutRef.current);
+    }
+
+    popupTimeoutRef.current = window.setTimeout(() => {
+      setAcknowledgingHabitId(null);
+      const latestJourney = finalJourneys.find((journey) => journey.habitId === habit.id);
+      const latestMilestone =
+        unlockedMilestone && latestJourney
+          ? latestJourney.milestones.find((milestone) => milestone.phase === unlockedMilestone.phase) ?? null
+          : null;
+
+      if (latestMilestone?.isUnlocked) {
+        setMilestonePopup({
+          milestone: latestMilestone,
+          habitName: habit.name,
+        });
+        return;
+      }
+
+      releaseQueuedPopup();
+    }, ACKNOWLEDGMENT_DELAY_MS);
+  }
+
+  async function updateProgress(habitId: string, rawValue: string) {
+    const habit = items.find((entry) => entry.id === habitId);
+    if (!habit) {
+      return;
+    }
+
+    const previousItems = items;
+    const previousLogs = logs;
+    const previousJourneys = journeys;
     const nextProgressValue = rawValue === "" ? null : Number(rawValue);
     const targetReached =
-      focusHabit.target_value !== null &&
+      habit.target_value !== null &&
       nextProgressValue !== null &&
-      nextProgressValue >= focusHabit.target_value;
-    const nextCompleted = focusHabit.log?.completed ?? targetReached;
-
-    const next = items.map((habit) =>
-      habit.id === focusHabit.id
-        ? { ...habit, log: buildNextLog(habit, nextCompleted, nextProgressValue) }
-        : habit,
-    );
+      nextProgressValue >= habit.target_value;
+    const nextCompleted = habit.log?.completed ?? targetReached;
+    const nextLog = buildNextLog(habit, nextCompleted, nextProgressValue);
+    const nextItems = withUpdatedLog(items, habit.id, nextLog);
+    const nextLogs = withUpdatedHistory(nextLog, logs);
 
     setFeedback(null);
-    setItems(next);
-    await persistLog(focusHabit, nextCompleted, nextProgressValue);
+    setItems(nextItems);
+    setLogs(nextLogs);
+
+    const persisted = await persistLog(habit, nextCompleted, nextProgressValue, nextItems);
+    if (!persisted) {
+      setItems(previousItems);
+      setLogs(previousLogs);
+      setJourneys(previousJourneys);
+      return;
+    }
+
+    setJourneys(recalculateJourneys(nextItems, nextLogs, milestoneUnlocks));
   }
 
-  if (!focusHabit) {
+  async function saveSecondHabit() {
+    if (!profile) {
+      return;
+    }
+
+    if (!newHabitDraft.name.trim() || !newHabitDraft.minimumLabel.trim()) {
+      setFeedback("Add a habit name and a minimum version first.");
+      return;
+    }
+
+    setSavingNewHabit(true);
+    setFeedback(null);
+
+    const habitId = `habit-${Date.now()}`;
+    const nextHabit: TodayHabitItem = {
+      id: habitId,
+      user_id: profile.id,
+      name: newHabitDraft.name.trim(),
+      type: newHabitDraft.type,
+      target_value:
+        newHabitDraft.type === "measurable" && newHabitDraft.targetValue
+          ? Number(newHabitDraft.targetValue)
+          : null,
+      target_unit: newHabitDraft.type === "measurable" ? newHabitDraft.targetUnit.trim() || null : null,
+      minimum_label: newHabitDraft.minimumLabel.trim(),
+      is_primary: false,
+      commitment_start_date: toDateKey(),
+      commitment_length_days: 75,
+      source_type: "manual",
+      is_active: true,
+      log: null,
+    };
+
+    try {
+      if (isDemo || !hasSupabaseEnv()) {
+        const demoHabit: UserHabit = {
+          id: nextHabit.id,
+          user_id: nextHabit.user_id,
+          name: nextHabit.name,
+          type: nextHabit.type,
+          target_value: nextHabit.target_value,
+          target_unit: nextHabit.target_unit,
+          minimum_label: nextHabit.minimum_label,
+          is_primary: false,
+          commitment_start_date: nextHabit.commitment_start_date,
+          commitment_length_days: 75,
+          source_type: "manual",
+          is_active: true,
+        };
+        writeDemoAdditionalHabit(demoHabit);
+      } else {
+        const supabase = createClient();
+        const { data, error } = await supabase
+          .from("user_habits")
+          .insert({
+            user_id: profile.id,
+            name: nextHabit.name,
+            type: nextHabit.type,
+            target_value: nextHabit.target_value,
+            target_unit: nextHabit.target_unit,
+            minimum_label: nextHabit.minimum_label,
+            is_primary: false,
+            commitment_start_date: nextHabit.commitment_start_date,
+            commitment_length_days: 75,
+            source_type: "manual",
+            is_active: true,
+          })
+          .select("*")
+          .single();
+
+        if (error || !data) {
+          throw error ?? new Error("Unable to add the new habit.");
+        }
+
+        nextHabit.id = data.id;
+      }
+
+      const nextItems = [...items, nextHabit];
+      const nextJourneys = recalculateJourneys(nextItems, logs, milestoneUnlocks);
+      setItems(nextItems);
+      setJourneys(nextJourneys);
+      setShowAddHabitComposer(false);
+      setNewHabitDraft(EMPTY_HABIT_DRAFT);
+      releaseQueuedPopup();
+    } catch (saveError) {
+      setFeedback(saveError instanceof Error ? saveError.message : "Unable to add that habit right now.");
+    } finally {
+      setSavingNewHabit(false);
+    }
+  }
+
+  if (!orderedItems.length) {
     return (
       <Card>
         <p className="font-medium">Your first habit will appear here after onboarding.</p>
@@ -220,24 +649,8 @@ export function TodayScreen({
 
   return (
     <div className="space-y-5">
-      {isAcknowledging ? (
-        <div className="pointer-events-none fixed inset-x-0 top-0 z-40 h-screen overflow-hidden motion-reduce:hidden">
-          {CONFETTI_PIECES.map((piece, index) => (
-            <span
-              key={`${piece.left}-${index}`}
-              className={cn(
-                "absolute top-0 h-4 w-2 rounded-full opacity-0 animate-confettiFall",
-                CONFETTI_COLORS[index % CONFETTI_COLORS.length],
-              )}
-              style={{
-                left: piece.left,
-                animationDelay: `${piece.delay}ms`,
-                transform: `rotate(${piece.rotate}deg)`,
-              }}
-            />
-          ))}
-        </div>
-      ) : null}
+      {isAcknowledging ? renderFullScreenConfetti(CONFETTI_COLORS) : null}
+      {milestonePopup ? renderFullScreenConfetti(MILESTONE_CONFETTI_COLORS) : null}
 
       <div className="space-y-3">
         <div>
@@ -248,7 +661,7 @@ export function TodayScreen({
           </div>
         </div>
 
-        <Card className="space-y-5 bg-surface/70 px-5 py-4">
+        <Card className="space-y-5 bg-surface/70 px-5 py-5">
           <div className="flex items-center gap-2 text-foreground/40">
             <CircleUserRound className="h-4 w-4 text-accent" />
             <p className="text-xs uppercase tracking-[0.2em]">Identity</p>
@@ -277,90 +690,140 @@ export function TodayScreen({
         </Card>
       ) : null}
 
-      <Card
-        className={cn(
-          "relative space-y-4 overflow-hidden",
-          isCheckedIn && "border-success/30 bg-success/5",
-          isAcknowledging && "animate-celebrate",
-        )}
-      >
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2 text-foreground/40">
-              <Target className="h-4 w-4 text-accent" />
-              <p className="text-xs uppercase tracking-[0.2em]">Current habit</p>
-            </div>
-            <Badge className={cn(isCheckedIn && "border-success/20 bg-success/10 text-success")}>
-              {isCheckedIn ? "Done today" : "Still to do"}
-            </Badge>
-          </div>
-
-          <div
-            className={cn(
-              "rounded-[28px] border border-border/80 bg-card p-5",
-              isCheckedIn && "border-success/20 bg-success/5",
-            )}
-          >
-            <p className="font-display text-3xl font-normal tracking-tight">{focusHabit.name}</p>
-            <p className="mt-3 text-sm text-foreground/48">
-              This is the one thing that counts today.
-            </p>
-          </div>
-
-          <div className={cn("rounded-2xl bg-surface/70 px-4 py-3", isCheckedIn && "bg-success/8")}>
-            <p className="text-xs uppercase tracking-[0.18em] text-foreground/38">Minimum version</p>
-            <p className="mt-1 text-sm text-foreground/62">
-              {focusHabit.minimum_label
-                ? focusHabit.minimum_label
-                : "Keep the threshold small enough to repeat."}
-            </p>
-          </div>
+      <div className="space-y-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">
+            {orderedItems.length > 1 ? "Current habits" : "Current habit"}
+          </p>
         </div>
 
-        {focusHabit.type === "measurable" ? (
-          <div className="flex items-center gap-2">
-            <Input
-              type="number"
-              inputMode="numeric"
-              value={focusHabit.log?.progress_value ?? ""}
-              onChange={(event) => void updateProgress(event.target.value)}
-              className="h-11 max-w-[140px]"
-              placeholder="Amount"
-            />
-            <span className="text-xs uppercase tracking-[0.18em] text-foreground/38">
-              {focusHabit.target_unit}
-            </span>
-          </div>
-        ) : null}
+        {orderedItems.map((habit, index) => {
+          const journey = journeyByHabitId.get(habit.id) ?? null;
+          const isCheckedIn = Boolean(habit.log?.completed);
+          const isCardAcknowledging = acknowledgingHabitId === habit.id;
 
-        {isAcknowledging ? (
-          <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="absolute h-28 w-28 rounded-full border border-success/30 animate-burst" />
-              <span className="absolute h-36 w-36 rounded-full border border-success/15 animate-burst [animation-delay:120ms]" />
-              <span className="absolute h-44 w-44 rounded-full border border-accent/12 animate-burst [animation-delay:220ms] motion-reduce:hidden" />
+          return (
+            <Card
+              key={habit.id}
+              className={cn(
+                "relative space-y-4 overflow-hidden",
+                isCheckedIn && "border-success/30 bg-success/5",
+                isCardAcknowledging && "animate-celebrate",
+              )}
+            >
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-foreground/40">
+                    <Target className="h-4 w-4 text-accent" />
+                    <p className="text-xs uppercase tracking-[0.2em]">
+                      {index === 0 ? "Primary habit" : `Habit ${index + 1}`}
+                    </p>
+                  </div>
+                  <Badge className={cn(isCheckedIn && "border-success/20 bg-success/10 text-success")}>
+                    {isCheckedIn ? "Done today" : "Still to do"}
+                  </Badge>
+                </div>
+
+                <div
+                  className={cn(
+                    "rounded-[28px] border border-border/80 bg-card p-5",
+                    isCheckedIn && "border-success/20 bg-success/5",
+                  )}
+                >
+                  <p className="font-display text-3xl font-normal tracking-tight">{habit.name}</p>
+                  <div className="mt-4 rounded-2xl bg-surface/70 px-4 py-3">
+                    <p className="text-[11px] uppercase tracking-[0.18em] text-foreground/38">Minimum version</p>
+                    <p className="mt-1 text-sm text-foreground/62">
+                      {habit.minimum_label ? habit.minimum_label : "Keep the threshold small enough to repeat."}
+                    </p>
+                  </div>
+                  {journey ? (
+                    <div className="mt-4">
+                      <div className="mb-3 flex items-center gap-2 text-foreground/40">
+                        <Sparkles className="h-4 w-4 text-accent2" />
+                        <p className="text-xs uppercase tracking-[0.18em]">Journey</p>
+                      </div>
+                      <HabitJourneyRow journey={journey} />
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              {habit.type === "measurable" ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="numeric"
+                    value={habit.log?.progress_value ?? ""}
+                    onChange={(event) => void updateProgress(habit.id, event.target.value)}
+                    className="h-11 max-w-[140px]"
+                    placeholder="Amount"
+                  />
+                  <span className="text-xs uppercase tracking-[0.18em] text-foreground/38">
+                    {habit.target_unit}
+                  </span>
+                </div>
+              ) : null}
+
+              {isCardAcknowledging ? (
+                <div className="relative overflow-hidden rounded-2xl border border-success/20 bg-success/10 px-4 py-3">
+                  <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="absolute h-28 w-28 rounded-full border border-success/30 animate-burst" />
+                    <span className="absolute h-36 w-36 rounded-full border border-success/15 animate-burst [animation-delay:120ms]" />
+                    <span className="absolute h-44 w-44 rounded-full border border-accent/12 animate-burst [animation-delay:220ms] motion-reduce:hidden" />
+                  </div>
+                  <p className="relative text-sm font-medium text-success">That counts. You showed up again today.</p>
+                </div>
+              ) : null}
+
+              <Button
+                className={cn(
+                  "relative w-full overflow-hidden",
+                  isCheckedIn && "bg-success text-white hover:bg-success",
+                  isCardAcknowledging && "animate-celebrate",
+                )}
+                onClick={() => void toggleHabit(habit.id)}
+              >
+                {isCardAcknowledging ? (
+                  <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                    <span className="absolute h-20 w-20 rounded-full bg-white/12 animate-burst" />
+                  </span>
+                ) : null}
+                <CheckCircle2 className="mr-2 h-4 w-4" />
+                {isCardAcknowledging ? "Habit logged" : habit.log?.completed ? "Habit logged" : "Log habit"}
+              </Button>
+            </Card>
+          );
+        })}
+      </div>
+
+      {(canAddSecondHabit || journeys.some((journey) => journey.canAddSecondHabit)) && orderedItems.length < 2 ? (
+        showAddHabitComposer ? (
+          <AddHabitComposer
+            draft={newHabitDraft}
+            saving={savingNewHabit}
+            onChange={(patch) => setNewHabitDraft((current) => ({ ...current, ...patch }))}
+            onSave={() => void saveSecondHabit()}
+            onCancel={() => {
+              setShowAddHabitComposer(false);
+              setNewHabitDraft(EMPTY_HABIT_DRAFT);
+              releaseQueuedPopup();
+            }}
+          />
+        ) : (
+          <Card className="space-y-3 border-accent/20 bg-accent/6">
+            <div className="space-y-2">
+              <p className="text-xs uppercase tracking-[0.2em] text-accent">Unlocked at day 75</p>
+              <h3 className="font-display text-2xl font-normal tracking-tight">You can add a second habit.</h3>
+              <p className="text-sm text-foreground/62">The first one stays. The next one starts its own journey.</p>
             </div>
-            <p className="relative text-sm font-medium text-success">That counts. You showed up again today.</p>
-          </div>
-        ) : null}
-
-        <Button
-          className={cn(
-            "relative w-full overflow-hidden",
-            isCheckedIn && "bg-success text-white hover:bg-success",
-            isAcknowledging && "animate-celebrate",
-          )}
-          onClick={() => void toggleHabit()}
-        >
-          {isAcknowledging ? (
-            <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <span className="absolute h-20 w-20 rounded-full bg-white/12 animate-burst" />
-            </span>
-          ) : null}
-          <CheckCircle2 className="mr-2 h-4 w-4" />
-          {isAcknowledging ? "Habit logged" : focusHabit.log?.completed ? "Habit logged" : "Log habit"}
-        </Button>
-      </Card>
+            <Button className="w-full" onClick={() => setShowAddHabitComposer(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add another habit
+            </Button>
+          </Card>
+        )
+      ) : null}
 
       {visibleCircleDashboard ? (
         <Card className="space-y-4 overflow-hidden">
@@ -383,9 +846,23 @@ export function TodayScreen({
 
       {isDemo ? (
         <p className="text-center text-xs text-foreground/40">
-          Demo mode previews the first-week rhythm without persistence.
+          Demo mode previews the habit journey without full backend persistence.
         </p>
       ) : null}
+
+      <MilestonePopup
+        open={Boolean(milestonePopup)}
+        milestone={milestonePopup?.milestone ?? null}
+        habitName={milestonePopup?.habitName ?? null}
+        onClose={() => {
+          setMilestonePopup(null);
+          releaseQueuedPopup();
+        }}
+        onAddHabit={() => {
+          setMilestonePopup(null);
+          setShowAddHabitComposer(true);
+        }}
+      />
 
       <PostCheckInPopup
         state={popupState}
@@ -444,7 +921,10 @@ export function TodayScreen({
 
       const { error: reactionError } = await supabase
         .from("member_reactions")
-        .upsert(reactionRows, { onConflict: "from_user_id,to_user_id,week_start_date,emoji", ignoreDuplicates: true });
+        .upsert(reactionRows, {
+          onConflict: "from_user_id,to_user_id,week_start_date,emoji",
+          ignoreDuplicates: true,
+        });
 
       if (reactionError) {
         throw reactionError;

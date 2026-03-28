@@ -1,9 +1,11 @@
-import { CircleDashboard, CircleMemberStatus, HabitLog, TodayHabitItem } from "@/lib/types";
+import { CircleDashboard, CircleMemberStatus, HabitLog, HabitMilestoneUnlock, TodayHabitItem, UserHabit } from "@/lib/types";
 import { toDateKey } from "@/lib/utils";
 
 export const DEMO_CHECKIN_KEY = "becoming-demo-checkin-status";
 const DEMO_SOCIAL_ACTIVITY_KEY = "becoming-demo-social-activity";
 export const DEMO_HABIT_LOG_KEY = "becoming-demo-habit-log";
+export const DEMO_MILESTONES_KEY = "becoming-demo-milestones";
+export const DEMO_ADDITIONAL_HABITS_KEY = "becoming-demo-additional-habits";
 
 function writeCookie(name: string, value: string) {
   if (typeof document === "undefined") {
@@ -39,46 +41,50 @@ export function writeDemoHabitLog(entry: {
     logDate: entry.logDate ?? toDateKey(),
   };
 
-  window.sessionStorage.setItem(DEMO_HABIT_LOG_KEY, JSON.stringify(payload));
-  writeCookie(DEMO_HABIT_LOG_KEY, JSON.stringify(payload));
+  const next = [...readDemoHabitLogs().filter((item) => item.habitId !== payload.habitId), payload];
+  window.sessionStorage.setItem(DEMO_HABIT_LOG_KEY, JSON.stringify(next));
+  writeCookie(DEMO_HABIT_LOG_KEY, JSON.stringify(next));
 }
 
-export function readDemoHabitLog(): {
-  habitId: string;
-  completed: boolean;
-  progressValue: number | null;
-  logDate: string;
-} | null {
-  if (typeof window === "undefined") {
-    return null;
-  }
-
-  const raw = window.sessionStorage.getItem(DEMO_HABIT_LOG_KEY);
+function parseHabitLogPayload(raw: string | null) {
   if (!raw) {
-    return null;
+    return [];
   }
 
   try {
     const parsed = JSON.parse(raw);
-    if (parsed?.logDate !== toDateKey()) {
-      window.sessionStorage.removeItem(DEMO_HABIT_LOG_KEY);
-      return null;
-    }
-    return parsed;
+    const entries = Array.isArray(parsed) ? parsed : [parsed];
+    return entries.filter((entry) => entry?.logDate === toDateKey());
   } catch {
-    return null;
+    return [];
   }
 }
 
-export function applyDemoHabitOverride(habits: TodayHabitItem[]) {
-  const override = readDemoHabitLog();
+export function readDemoHabitLogs(): Array<{
+  habitId: string;
+  completed: boolean;
+  progressValue: number | null;
+  logDate: string;
+}> {
+  if (typeof window === "undefined") {
+    return [];
+  }
 
-  if (!override) {
+  const entries = parseHabitLogPayload(window.sessionStorage.getItem(DEMO_HABIT_LOG_KEY));
+  window.sessionStorage.setItem(DEMO_HABIT_LOG_KEY, JSON.stringify(entries));
+  return entries;
+}
+
+export function applyDemoHabitOverride(habits: TodayHabitItem[]) {
+  const overrides = readDemoHabitLogs();
+
+  if (!overrides.length) {
     return habits;
   }
 
   return habits.map((habit) => {
-    if (habit.id !== override.habitId) {
+    const override = overrides.find((entry) => entry.habitId === habit.id);
+    if (!override) {
       return habit;
     }
 
@@ -131,7 +137,7 @@ export function applyDemoCheckinOverride(circleDashboard: CircleDashboard | null
     missedCount,
     pendingCount,
     completionPercentage: members.length ? checkedInCount / members.length : 0,
-    currentUserStatus: override,
+    currentUserStatus: override as CircleDashboard["currentUserStatus"],
     accountabilityMessage:
       override === "checked_in"
         ? checkedInCount === members.length
@@ -148,6 +154,68 @@ export function writeDemoSocialActivity(entry: { id: string; text: string }) {
 
   const current = readDemoSocialActivity();
   window.sessionStorage.setItem(DEMO_SOCIAL_ACTIVITY_KEY, JSON.stringify([entry, ...current].slice(0, 5)));
+}
+
+export function readDemoMilestoneUnlocks(): HabitMilestoneUnlock[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.sessionStorage.getItem(DEMO_MILESTONES_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeDemoMilestoneUnlock(entry: HabitMilestoneUnlock) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const next = [
+    ...readDemoMilestoneUnlocks().filter(
+      (item) => !(item.user_habit_id === entry.user_habit_id && item.milestone_phase === entry.milestone_phase),
+    ),
+    entry,
+  ];
+
+  window.sessionStorage.setItem(DEMO_MILESTONES_KEY, JSON.stringify(next));
+  writeCookie(DEMO_MILESTONES_KEY, JSON.stringify(next));
+}
+
+export function readDemoAdditionalHabits(): UserHabit[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  const raw = window.sessionStorage.getItem(DEMO_ADDITIONAL_HABITS_KEY);
+  if (!raw) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function writeDemoAdditionalHabit(habit: UserHabit) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const next = [...readDemoAdditionalHabits().filter((item) => item.id !== habit.id), habit];
+  window.sessionStorage.setItem(DEMO_ADDITIONAL_HABITS_KEY, JSON.stringify(next));
+  writeCookie(DEMO_ADDITIONAL_HABITS_KEY, JSON.stringify(next));
 }
 
 export function readDemoSocialActivity(): Array<{ id: string; text: string }> {

@@ -9,7 +9,13 @@ import {
   demoTribes,
   demoUserHabits,
 } from "@/lib/demo/data";
-import { DEMO_CHECKIN_KEY, DEMO_HABIT_LOG_KEY } from "@/lib/demo/overrides";
+import {
+  DEMO_ADDITIONAL_HABITS_KEY,
+  DEMO_CHECKIN_KEY,
+  DEMO_HABIT_LOG_KEY,
+  DEMO_MILESTONES_KEY,
+} from "@/lib/demo/overrides";
+import { deriveHabitJourney } from "@/lib/habit-journey";
 import { mapTeamPageData } from "@/lib/team/teamMappers";
 import { calculateStreak, calculateUserWeeklyScore } from "@/lib/score";
 import { isForcedDemoMode } from "@/lib/supabase/env";
@@ -17,6 +23,8 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   CircleDashboard,
   HabitLog,
+  HabitJourneyProgress,
+  HabitMilestoneUnlock,
   HabitTemplate,
   IntegrationInterest,
   NotificationPreference,
@@ -33,7 +41,9 @@ import { getMonthDateKeys, getWeekDateKeys, getWeekWindow, toDateKey } from "@/l
 type AppBootstrap = {
   profile: Profile | null;
   habits: TodayHabitItem[];
-  weekLogs: HabitLog[];
+  historyLogs: HabitLog[];
+  habitJourneys: HabitJourneyProgress[];
+  canAddSecondHabit: boolean;
   templates: HabitTemplate[];
   organizations: { id: string; name: string }[];
   tribes: Tribe[];
@@ -65,7 +75,9 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
     return {
       profile: null,
       habits: [],
-      weekLogs: [],
+      historyLogs: [],
+      habitJourneys: [],
+      canAddSecondHabit: false,
       templates: [],
       organizations: demoOrganizations,
       tribes: [],
@@ -80,12 +92,13 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
   }
 
   const today = toDateKey();
-  const monthStart = getMonthDateKeys()[0];
+  const historyStart = format(addDays(new Date(), -90), "yyyy-MM-dd");
 
   const [
     profileResult,
     habitsResult,
     logsResult,
+    milestoneResult,
     templatesResult,
     tribesResult,
     organizationsResult,
@@ -104,7 +117,8 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       .eq("is_active", true)
       .order("is_primary", { ascending: false })
       .order("created_at"),
-    supabase.from("habit_logs").select("*").eq("user_id", user.id).gte("log_date", monthStart),
+    supabase.from("habit_logs").select("*").eq("user_id", user.id).gte("log_date", historyStart),
+    supabase.from("habit_milestones").select("*").eq("user_id", user.id),
     supabase.from("habit_templates").select("*").order("sort_order"),
     supabase.from("tribe_member_counts").select("*").order("name"),
     supabase.from("organizations").select("*").order("name"),
@@ -120,6 +134,9 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       ) ?? null,
   }));
 
+  const historyLogs = (logsResult.data ?? []) as HabitLog[];
+  const habitMilestones = (milestoneResult.data ?? []) as HabitMilestoneUnlock[];
+  const habitJourneys = habits.map((habit) => deriveHabitJourney(habit, historyLogs, habitMilestones));
   const profile = (profileResult.data as Profile | null) ?? null;
   const circleDashboard = profile?.tribe_id ? await getCircleDashboard(profile.tribe_id, user.id) : null;
   const teamPageData = profile?.tribe_id ? await getTeamPageData(profile.tribe_id) : null;
@@ -128,7 +145,9 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
   return {
     profile,
     habits,
-    weekLogs: (logsResult.data ?? []) as HabitLog[],
+    historyLogs,
+    habitJourneys,
+    canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
     templates: (templatesResult.data ?? []) as HabitTemplate[],
     organizations: (organizationsResult.data ?? []) as { id: string; name: string }[],
     tribes: ((tribesResult.data ?? []) as Array<Tribe & { organization_name?: string }>).map((tribe) => ({
@@ -491,6 +510,15 @@ function readDemoCookieJson<T>(value?: string): T | null {
   }
 }
 
+function readDemoCookieArray<T>(value?: string): T[] {
+  const parsed = readDemoCookieJson<T | T[]>(value);
+  if (!parsed) {
+    return [];
+  }
+
+  return Array.isArray(parsed) ? parsed : [parsed];
+}
+
 async function getDemoBootstrap(): Promise<AppBootstrap> {
   const cookieStore = await cookies();
   const today = toDateKey();
@@ -501,36 +529,53 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
   const demoCheckinOverride = readDemoCookieJson<{ status: "checked_in" | "pending"; date: string }>(
     cookieStore.get(DEMO_CHECKIN_KEY)?.value,
   );
-  const demoHabitOverride = readDemoCookieJson<{
+  const demoHabitOverrides = readDemoCookieArray<{
     habitId: string;
     completed: boolean;
     progressValue: number | null;
     logDate: string;
-  }>(cookieStore.get(DEMO_HABIT_LOG_KEY)?.value);
+  }>(cookieStore.get(DEMO_HABIT_LOG_KEY)?.value).filter((entry) => entry.logDate === today);
+  const demoMilestones = readDemoCookieArray<HabitMilestoneUnlock>(cookieStore.get(DEMO_MILESTONES_KEY)?.value);
+  const demoAdditionalHabits = readDemoCookieArray<UserHabit>(cookieStore.get(DEMO_ADDITIONAL_HABITS_KEY)?.value);
+  const allDemoHabits = [...demoUserHabits, ...demoAdditionalHabits];
 
-  const habits: TodayHabitItem[] = demoUserHabits.map((habit) => {
+  const habits: TodayHabitItem[] = allDemoHabits.map((habit) => {
     const baseLog = demoHabitLogs.find((log) => log.user_habit_id === habit.id && log.log_date === today) ?? null;
+    const override = demoHabitOverrides.find((entry) => entry.habitId === habit.id && entry.logDate === today);
     const overriddenLog =
-      demoHabitOverride?.habitId === habit.id && demoHabitOverride.logDate === today
+      override
         ? {
             id: baseLog?.id ?? `demo-log-${habit.id}`,
             user_id: habit.user_id,
             user_habit_id: habit.id,
             log_date: today,
-            completed: demoHabitOverride.completed,
-            progress_value: demoHabitOverride.progressValue,
+            completed: override.completed,
+            progress_value: override.progressValue,
             notes: null,
           }
         : null;
 
     return {
-    ...habit,
+      ...habit,
       log: overriddenLog ?? baseLog,
     };
   });
+  const historyLogs = [
+    ...demoHabitLogs,
+    ...demoHabitOverrides.map((override) => ({
+      id: `demo-log-${override.habitId}-${override.logDate}`,
+      user_id: demoProfile.id,
+      user_habit_id: override.habitId,
+      log_date: override.logDate,
+      completed: override.completed,
+      progress_value: override.progressValue,
+      notes: null,
+    })),
+  ] as HabitLog[];
+  const habitJourneys = habits.map((habit) => deriveHabitJourney(habit, historyLogs, demoMilestones));
 
   const memberHabits: UserHabit[] = [
-    ...demoUserHabits,
+    ...allDemoHabits,
     { ...demoUserHabits[0], id: "h2", user_id: "u2" },
     { ...demoUserHabits[0], id: "h3", user_id: "u3" },
     { ...demoUserHabits[0], id: "h4", user_id: "u4" },
@@ -557,8 +602,8 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
         demoCheckinOverride?.date === today
           ? demoCheckinOverride.status
           : ("pending" as const),
-      streak: calculateStreak([demoUserHabits[0]], demoHabitLogs),
-      percentage: calculateUserWeeklyScore([demoUserHabits[0]], demoHabitLogs).percentage,
+      streak: calculateStreak([allDemoHabits[0]], historyLogs),
+      percentage: calculateUserWeeklyScore([allDemoHabits[0]], historyLogs).percentage,
       isCurrentUser: true,
       checkedInAt: demoCheckinOverride?.date === today && demoCheckinOverride.status === "checked_in" ? new Date().toISOString() : null,
       reactions: ["👏"],
@@ -596,7 +641,9 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
   return {
     profile: demoProfile,
     habits,
-    weekLogs: demoHabitLogs,
+    historyLogs,
+    habitJourneys,
+    canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
     templates: demoHabitTemplates,
     organizations: demoOrganizations,
     tribes: demoTribes,

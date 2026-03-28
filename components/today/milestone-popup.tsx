@@ -1,0 +1,93 @@
+"use client";
+
+import { PartyPopper, Plus } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { HabitJourneyMilestone } from "@/lib/types";
+import { cn } from "@/lib/utils";
+
+type MilestonePopupTone = "willpower" | "locking" | "identity";
+
+function getToneClasses(tone: MilestonePopupTone) {
+  if (tone === "identity") {
+    return {
+      panel: "border-success/25 bg-success/12",
+      eyebrow: "text-success",
+    };
+  }
+
+  if (tone === "locking") {
+    return {
+      panel: "border-accent2/30 bg-accent2/10",
+      eyebrow: "text-accent2",
+    };
+  }
+
+  return {
+    panel: "border-accent/25 bg-accent/10",
+    eyebrow: "text-accent",
+  };
+}
+
+export function MilestonePopup({
+  open,
+  milestone,
+  habitName,
+  onClose,
+  onAddHabit,
+}: {
+  open: boolean;
+  milestone: HabitJourneyMilestone | null;
+  habitName: string | null;
+  onClose: () => void;
+  onAddHabit: () => void;
+}) {
+  if (!open || !milestone) {
+    return null;
+  }
+
+  const tone: MilestonePopupTone =
+    milestone.phase === "day_75" ? "identity" : milestone.phase === "day_30" ? "locking" : "willpower";
+  const styles = getToneClasses(tone);
+  const bodyCopy =
+    milestone.phase === "day_75"
+      ? "This is no longer just effort. It is starting to look like identity."
+      : milestone.phase === "day_30"
+        ? "This is getting easier to return to. The habit is starting to hold its shape."
+        : "You have made it through the early negotiation. Repetition is starting to win.";
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end bg-black/35 p-4">
+      <Card className={cn("w-full animate-rise rounded-[32px] border-2", styles.panel)}>
+        <div className="space-y-5">
+          <div className={cn("flex items-center gap-2", styles.eyebrow)}>
+            <PartyPopper className="h-4 w-4" />
+            <p className="text-xs uppercase tracking-[0.24em]">{milestone.title}</p>
+          </div>
+          <div>
+            <h3 className="font-display text-3xl font-normal tracking-tight">
+              {milestone.shortLabel} unlocked for {habitName}.
+            </h3>
+            <p className="mt-3 text-sm text-foreground/68">{bodyCopy}</p>
+          </div>
+          {milestone.phase === "day_75" ? (
+            <div className="flex gap-2">
+              <Button variant="secondary" className="flex-1" onClick={onClose}>
+                Keep going
+              </Button>
+              <Button className="flex-1 bg-success text-white hover:bg-success/95" onClick={onAddHabit}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add another habit
+              </Button>
+            </div>
+          ) : (
+            <Button className="w-full" onClick={onClose}>
+              Keep going
+            </Button>
+          )}
+        </div>
+      </Card>
+    </div>
+  );
+}
