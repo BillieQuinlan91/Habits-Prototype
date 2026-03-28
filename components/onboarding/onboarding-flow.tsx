@@ -399,7 +399,7 @@ export function OnboardingFlow({
               <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Your first-week focus</p>
               <div>
                 <p className="font-medium">{formatIdentityLabel(identityLabel)}</p>
-                <p className="mt-2 text-sm text-foreground/58">{habitLabel}</p>
+                <p className="mt-2 text-sm text-foreground/58">Main habit: {habitLabel}</p>
                 <p className="mt-1 text-sm text-foreground/48">Minimum version: {minimumLabel}</p>
               </div>
             </div>
