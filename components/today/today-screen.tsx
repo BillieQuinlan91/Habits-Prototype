@@ -69,6 +69,7 @@ export function TodayScreen({
     [circleDashboard, isDemo],
   );
   const isAcknowledging = acknowledgmentState === "acknowledging";
+  const isCheckedIn = Boolean(focusHabit?.log?.completed);
 
   useEffect(() => {
     setItems(isDemo ? applyDemoHabitOverride(habits) : habits);
@@ -235,24 +236,37 @@ export function TodayScreen({
         </Card>
       </div>
 
-      <Card className={cn("relative space-y-4 overflow-hidden", isAcknowledging && "animate-celebrate border-success/30 bg-success/5")}>
+      <Card
+        className={cn(
+          "relative space-y-4 overflow-hidden",
+          isCheckedIn && "border-success/30 bg-success/5",
+          isAcknowledging && "animate-celebrate",
+        )}
+      >
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-foreground/40">
               <Target className="h-4 w-4 text-accent" />
               <p className="text-xs uppercase tracking-[0.2em]">Current commitment</p>
             </div>
-            <Badge>{focusHabit.log?.completed ? "Done today" : "Still to do"}</Badge>
+            <Badge className={cn(isCheckedIn && "border-success/20 bg-success/10 text-success")}>
+              {isCheckedIn ? "Done today" : "Still to do"}
+            </Badge>
           </div>
 
-          <div className="rounded-[28px] border border-border/80 bg-card p-5">
+          <div
+            className={cn(
+              "rounded-[28px] border border-border/80 bg-card p-5",
+              isCheckedIn && "border-success/20 bg-success/5",
+            )}
+          >
             <p className="font-display text-3xl font-normal tracking-tight">{focusHabit.name}</p>
             <p className="mt-3 text-sm text-foreground/48">
               This is the one thing that counts today.
             </p>
           </div>
 
-          <div className="rounded-2xl bg-surface/70 px-4 py-3">
+          <div className={cn("rounded-2xl bg-surface/70 px-4 py-3", isCheckedIn && "bg-success/8")}>
             <p className="text-xs uppercase tracking-[0.18em] text-foreground/38">Minimum version</p>
             <p className="mt-1 text-sm text-foreground/62">
               {focusHabit.minimum_label
@@ -292,7 +306,8 @@ export function TodayScreen({
         <Button
           className={cn(
             "relative w-full overflow-hidden",
-            isAcknowledging && "animate-celebrate bg-success text-white hover:bg-success",
+            isCheckedIn && "bg-success text-white hover:bg-success",
+            isAcknowledging && "animate-celebrate",
           )}
           onClick={() => void toggleHabit()}
         >
