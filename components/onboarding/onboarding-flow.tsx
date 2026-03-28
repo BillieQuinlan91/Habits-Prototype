@@ -205,15 +205,6 @@ export function OnboardingFlow({
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2">
-        {Array.from({ length: totalSteps }, (_, item) => (
-          <div
-            key={item}
-            className={cn("h-1.5 flex-1 rounded-full", item <= step ? "bg-accent" : "bg-foreground/10")}
-          />
-        ))}
-      </div>
-
       {step === 0 ? (
         <Card className="space-y-5 animate-rise">
           <OnboardingJourneyTeaser step={step} />
