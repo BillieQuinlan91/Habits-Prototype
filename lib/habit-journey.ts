@@ -76,7 +76,7 @@ export function deriveHabitJourney(
       unlockedAt: unlocked?.unlocked_at ?? null,
       isEligibleToday:
         !unlocked &&
-        elapsedDays === milestone.targetDays &&
+        completedDays >= Math.ceil(milestone.targetDays * milestone.requiredConsistency) &&
         consistencyPercent >= milestone.requiredConsistency,
     };
   });
