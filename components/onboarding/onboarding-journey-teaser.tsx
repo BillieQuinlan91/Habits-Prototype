@@ -11,15 +11,15 @@ const MEMBER_MARKERS = [
     activeStyle: { borderColor: "#5E9C7D", boxShadow: "0 10px 24px rgba(94,156,125,0.12)" },
   },
   {
-    circleClass: "h-12 w-12",
-    innerClass: "h-3.5 w-3.5",
+    circleClass: "h-11 w-11",
+    innerClass: "h-3 w-3",
     barClass: "w-6",
     activeStyle: { borderColor: "#68A684", boxShadow: "0 10px 24px rgba(104,166,132,0.12)" },
   },
   {
-    circleClass: "h-14 w-14",
-    innerClass: "h-4 w-4",
-    barClass: "w-8",
+    circleClass: "h-12 w-12",
+    innerClass: "h-3.5 w-3.5",
+    barClass: "w-6",
     activeStyle: { borderColor: "#73AF8C", boxShadow: "0 10px 24px rgba(115,175,140,0.12)" },
   },
   {
@@ -29,9 +29,9 @@ const MEMBER_MARKERS = [
     activeStyle: { borderColor: "#7FBA97", boxShadow: "0 10px 24px rgba(127,186,151,0.12)" },
   },
   {
-    circleClass: "h-13 w-13",
+    circleClass: "h-12 w-12",
     innerClass: "h-3.5 w-3.5",
-    barClass: "w-7",
+    barClass: "w-6",
     activeStyle: { borderColor: "#8BC5A1", boxShadow: "0 10px 24px rgba(139,197,161,0.12)" },
   },
   {
