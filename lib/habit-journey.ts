@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, parseISO } from "date-fns";
+import { addDays, differenceInCalendarDays, parseISO, subDays } from "date-fns";
 
 import {
   HabitJourneyMilestone,
@@ -41,6 +41,13 @@ export const HABIT_JOURNEY_MILESTONES: Array<{
 ];
 
 export const MAX_ACTIVE_HABITS = 3;
+
+type JourneyRunState = {
+  runStartDate: string | null;
+  trackedDays: number;
+  completedDays: number;
+  consistencyPercent: number;
+};
 
 function getFinalMilestoneConfig() {
   return HABIT_JOURNEY_MILESTONES.find((milestone) => milestone.phase === "day_75") ?? HABIT_JOURNEY_MILESTONES[2];
@@ -85,7 +92,94 @@ export function deriveHabitJourney(
 ): HabitJourneyProgress {
   const todayKey = toDateKey(now);
   const startDate = habit.commitment_start_date ?? todayKey;
-  const trackedDays = Math.max(1, differenceInCalendarDays(now, parseISO(startDate)) + 1);
+  const finalMilestoneUnlock = milestoneUnlocks.find(
+    (entry) => entry.user_habit_id === habit.id && entry.milestone_phase === "day_75",
+  );
+
+  if (finalMilestoneUnlock) {
+    const milestones: HabitJourneyMilestone[] = HABIT_JOURNEY_MILESTONES.map((milestone) => {
+      const unlocked = milestoneUnlocks.find(
+        (entry) => entry.user_habit_id === habit.id && entry.milestone_phase === milestone.phase,
+      );
+
+      return {
+        ...milestone,
+        consistencyPercent: milestone.requiredConsistency,
+        requiredCompletedDays: Math.ceil(milestone.targetDays * milestone.requiredConsistency),
+        isUnlocked: true,
+        unlockedAt: unlocked?.unlocked_at ?? finalMilestoneUnlock.unlocked_at,
+        isEligibleToday: false,
+      };
+    });
+
+    return {
+      habitId: habit.id,
+      habitName: habit.name,
+      runStartDate: startDate,
+      trackedDays: getFinalMilestoneConfig().targetDays,
+      completedDays: Math.ceil(getFinalMilestoneConfig().targetDays * getFinalMilestoneConfig().requiredConsistency),
+      consistencyPercent: getFinalMilestoneConfig().requiredConsistency,
+      canAddSecondHabit: true,
+      milestones,
+      nextMilestone: null,
+    };
+  }
+
+  const currentRun = deriveJourneyRunState(habit, logs, startDate, todayKey);
+  const previousRun = deriveJourneyRunState(habit, logs, startDate, toDateKey(subDays(now, 1)));
+  const trackedDays = currentRun.trackedDays;
+  const completedDays = currentRun.completedDays;
+  const consistencyPercent = currentRun.consistencyPercent;
+
+  const milestones: HabitJourneyMilestone[] = HABIT_JOURNEY_MILESTONES.map((milestone) => {
+    const unlocked = milestoneUnlocks.find(
+      (entry) => entry.user_habit_id === habit.id && entry.milestone_phase === milestone.phase,
+    );
+    const currentRunUnlocked =
+      trackedDays >= milestone.targetDays && completedDays >= Math.ceil(milestone.targetDays * milestone.requiredConsistency);
+    const previousRunUnlocked =
+      previousRun.trackedDays >= milestone.targetDays &&
+      previousRun.completedDays >= Math.ceil(milestone.targetDays * milestone.requiredConsistency);
+
+    return {
+      ...milestone,
+      consistencyPercent,
+      requiredCompletedDays: Math.ceil(milestone.targetDays * milestone.requiredConsistency),
+      isUnlocked: currentRunUnlocked,
+      unlockedAt: currentRunUnlocked ? unlocked?.unlocked_at ?? null : null,
+      isEligibleToday:
+        currentRunUnlocked && !previousRunUnlocked,
+    };
+  });
+
+  return {
+    habitId: habit.id,
+    habitName: habit.name,
+    runStartDate: currentRun.runStartDate,
+    trackedDays,
+    completedDays,
+    consistencyPercent,
+    canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(completedDays, trackedDays, consistencyPercent),
+    milestones,
+    nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
+  };
+}
+
+function deriveJourneyRunState(
+  habit: UserHabit,
+  logs: HabitLog[],
+  startDate: string,
+  endDate: string,
+): JourneyRunState {
+  if (endDate < startDate) {
+    return {
+      runStartDate: null,
+      trackedDays: 0,
+      completedDays: 0,
+      consistencyPercent: 0,
+    };
+  }
+
   const completedDates = new Set(
     logs
       .filter(
@@ -93,41 +187,48 @@ export function deriveHabitJourney(
           log.user_habit_id === habit.id &&
           log.completed &&
           log.log_date >= startDate &&
-          log.log_date <= todayKey,
+          log.log_date <= endDate,
       )
       .map((log) => log.log_date),
   );
-  const completedDays = completedDates.size;
-  const consistencyPercent = trackedDays > 0 ? completedDays / trackedDays : 0;
 
-  const milestones: HabitJourneyMilestone[] = HABIT_JOURNEY_MILESTONES.map((milestone) => {
-    const unlocked = milestoneUnlocks.find(
-      (entry) => entry.user_habit_id === habit.id && entry.milestone_phase === milestone.phase,
-    );
+  let runStartDate: string | null = null;
+  let trackedDays = 0;
+  let completedDays = 0;
+  const totalDays = differenceInCalendarDays(parseISO(endDate), parseISO(startDate));
 
-    return {
-      ...milestone,
-      consistencyPercent,
-      requiredCompletedDays: Math.ceil(milestone.targetDays * milestone.requiredConsistency),
-      isUnlocked: Boolean(unlocked),
-      unlockedAt: unlocked?.unlocked_at ?? null,
-      isEligibleToday:
-        !unlocked &&
-        trackedDays >= milestone.targetDays &&
-        completedDays >= Math.ceil(milestone.targetDays * milestone.requiredConsistency) &&
-        consistencyPercent >= milestone.requiredConsistency,
-    };
-  });
+  for (let index = 0; index <= totalDays; index += 1) {
+    const dayKey = toDateKey(addDays(parseISO(startDate), index));
+    const completedToday = completedDates.has(dayKey);
+
+    if (runStartDate === null) {
+      if (!completedToday) {
+        continue;
+      }
+
+      runStartDate = dayKey;
+      trackedDays = 1;
+      completedDays = 1;
+      continue;
+    }
+
+    trackedDays += 1;
+    if (completedToday) {
+      completedDays += 1;
+    }
+
+    if (completedDays / trackedDays < 0.8) {
+      runStartDate = null;
+      trackedDays = 0;
+      completedDays = 0;
+    }
+  }
 
   return {
-    habitId: habit.id,
-    habitName: habit.name,
+    runStartDate,
     trackedDays,
     completedDays,
-    consistencyPercent,
-    canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(completedDays, trackedDays, consistencyPercent),
-    milestones,
-    nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
+    consistencyPercent: trackedDays > 0 ? completedDays / trackedDays : 0,
   };
 }
 
@@ -206,6 +307,7 @@ export function applyJourneyPreview(
 
     return {
       ...journey,
+      runStartDate: config.completedDays > 0 ? new Date().toISOString().slice(0, 10) : null,
       completedDays: config.completedDays,
       trackedDays: config.trackedDays,
       consistencyPercent,

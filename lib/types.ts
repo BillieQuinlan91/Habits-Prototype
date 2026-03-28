@@ -95,6 +95,7 @@ export type HabitJourneyMilestone = {
 export type HabitJourneyProgress = {
   habitId: string;
   habitName: string;
+  runStartDate: string | null;
   trackedDays: number;
   completedDays: number;
   consistencyPercent: number;

@@ -101,12 +101,10 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
   }
 
   const today = toDateKey();
-  const historyStart = format(addDays(new Date(), -90), "yyyy-MM-dd");
 
   const [
     profileResult,
     habitsResult,
-    logsResult,
     milestoneResult,
     templatesResult,
     tribesResult,
@@ -126,7 +124,6 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       .eq("is_active", true)
       .order("is_primary", { ascending: false })
       .order("created_at"),
-    supabase.from("habit_logs").select("*").eq("user_id", user.id).gte("log_date", historyStart),
     supabase.from("habit_milestones").select("*").eq("user_id", user.id),
     supabase.from("habit_templates").select("*").order("sort_order"),
     supabase.from("tribe_member_counts").select("*").order("name"),
@@ -135,7 +132,16 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
     supabase.from("notification_preferences").select("*").eq("user_id", user.id).maybeSingle(),
   ]);
 
-  const habits = ((habitsResult.data ?? []) as UserHabit[]).map((habit) => ({
+  const activeHabits = (habitsResult.data ?? []) as UserHabit[];
+  const earliestHabitStart =
+    activeHabits
+      .map((habit) => habit.commitment_start_date)
+      .filter((value): value is string => Boolean(value))
+      .sort()[0] ?? format(addDays(new Date(), -90), "yyyy-MM-dd");
+
+  const logsResult = await supabase.from("habit_logs").select("*").eq("user_id", user.id).gte("log_date", earliestHabitStart);
+
+  const habits = activeHabits.map((habit) => ({
     ...habit,
     log:
       ((logsResult.data ?? []) as HabitLog[]).find(
