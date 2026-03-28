@@ -65,7 +65,7 @@ export function TeamRing({
               type="button"
               aria-label="About the team ring"
               onClick={() => setShowInfo((current) => !current)}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-card text-foreground/48 transition hover:text-foreground/72"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-accent/20 bg-accent/8 text-accent transition hover:bg-accent/12"
             >
               <Info className="h-4 w-4" />
             </button>

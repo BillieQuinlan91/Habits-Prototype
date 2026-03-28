@@ -358,7 +358,7 @@ export function TodayScreen({
             </span>
           ) : null}
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          {isAcknowledging ? "Checked in" : focusHabit.log?.completed ? "Checked in" : "Log habit"}
+          {isAcknowledging ? "Habit logged" : focusHabit.log?.completed ? "Habit logged" : "Log habit"}
         </Button>
       </Card>
 
