@@ -147,6 +147,7 @@ export function applyJourneyPreview(
 
   const selectedHabitId = currentJourneyHabitId ?? journeys[0]?.habitId ?? null;
   const config = JOURNEY_PREVIEW_MAP[preview];
+  const consistencyPercent = config.completedDays / config.elapsedDays;
 
   const habitJourneys = journeys.map((journey) => {
     if (journey.habitId !== selectedHabitId) {
@@ -157,6 +158,7 @@ export function applyJourneyPreview(
       const targetReached = config.completedDays >= milestone.requiredCompletedDays;
       return {
         ...milestone,
+        consistencyPercent,
         isUnlocked: targetReached,
         unlockedAt: targetReached ? new Date().toISOString() : null,
         isEligibleToday: false,
@@ -167,7 +169,7 @@ export function applyJourneyPreview(
       ...journey,
       completedDays: config.completedDays,
       elapsedDays: config.elapsedDays,
-      consistencyPercent: config.completedDays / config.elapsedDays,
+      consistencyPercent,
       canAddSecondHabit: preview === "day75",
       milestones,
       nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
