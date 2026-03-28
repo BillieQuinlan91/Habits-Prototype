@@ -268,7 +268,11 @@ export function TodayScreen({
   );
   const currentJourney = useMemo(() => {
     const currentHabitId = getCurrentJourneyHabitId(journeys) ?? currentJourneyHabitId;
-    return journeys.find((journey) => journey.habitId === currentHabitId) ?? journeys[0] ?? null;
+    if (!currentHabitId) {
+      return null;
+    }
+
+    return journeys.find((journey) => journey.habitId === currentHabitId) ?? null;
   }, [currentJourneyHabitId, journeys]);
   const visibleCircleDashboard = isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard;
   const isAcknowledging = acknowledgingHabitId !== null;
@@ -681,11 +685,13 @@ export function TodayScreen({
         </Card>
       </div>
 
-      <HabitJourneyPanel
-        journey={currentJourney}
-        mode="teaser"
-        onOpen={() => router.push("/journey")}
-      />
+      {currentJourney ? (
+        <HabitJourneyPanel
+          journey={currentJourney}
+          mode="teaser"
+          onOpen={() => router.push("/journey")}
+        />
+      ) : null}
 
       {receivedSupportDigest && showSupportDigest ? (
         <Card className="space-y-3 bg-surface/70">

@@ -243,13 +243,21 @@ export function getCurrentJourneyHabitId(journeys: HabitJourneyProgress[]) {
 
   const inProgressJourneys = journeys.filter((journey) => journey.nextMilestone);
   if (inProgressJourneys.length) {
-    return inProgressJourneys.sort((a, b) => a.trackedDays - b.trackedDays)[0].habitId;
+    return inProgressJourneys
+      .slice()
+      .sort((a, b) => {
+        const aStarted = a.trackedDays > 0 ? 1 : 0;
+        const bStarted = b.trackedDays > 0 ? 1 : 0;
+
+        if (aStarted !== bStarted) {
+          return bStarted - aStarted;
+        }
+
+        return b.trackedDays - a.trackedDays;
+      })[0].habitId;
   }
 
-  return journeys
-    .slice()
-    .sort((a, b) => b.trackedDays - a.trackedDays)[0]
-    ?.habitId ?? null;
+  return null;
 }
 
 export type JourneyPreviewState = "day7" | "day30" | "day75";

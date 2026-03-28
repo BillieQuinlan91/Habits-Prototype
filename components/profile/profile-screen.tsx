@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
-import { writeDemoRemovedHabitId } from "@/lib/demo/overrides";
+import { writeDemoAdditionalHabit, writeDemoRemovedHabitId } from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/lib/data/actions";
 import { IntegrationInterest, NotificationPreference, Profile, UserHabit } from "@/lib/types";
@@ -45,12 +45,28 @@ export function ProfileScreen({
   const [settingsSaved, setSettingsSaved] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  function ensurePrimaryHabit(habitsToNormalize: UserHabit[]) {
+    if (!habitsToNormalize.length) {
+      return habitsToNormalize;
+    }
+
+    if (habitsToNormalize.some((habit) => habit.is_primary)) {
+      return habitsToNormalize;
+    }
+
+    return habitsToNormalize.map((habit, index) => ({
+      ...habit,
+      is_primary: index === 0,
+    }));
+  }
+
   function startEditing(habit: UserHabit) {
     setEditingHabitId(habit.id);
     setDrafts((current) => ({
       ...current,
       [habit.id]: {
         name: habit.name,
+        minimum_label: habit.minimum_label,
         type: habit.type,
         target_value: habit.target_value,
         target_unit: habit.target_unit,
@@ -84,6 +100,7 @@ export function ProfileScreen({
     const updatedHabit: UserHabit = {
       ...nextHabit,
       name: draft.name.trim(),
+      minimum_label: draft.minimum_label?.trim() || nextHabit.minimum_label,
       type: draft.type ?? nextHabit.type,
       target_value:
         (draft.type ?? nextHabit.type) === "binary"
@@ -112,6 +129,7 @@ export function ProfileScreen({
       .from("user_habits")
       .update({
         name: updatedHabit.name,
+        minimum_label: updatedHabit.minimum_label,
         type: updatedHabit.type,
         target_value: updatedHabit.target_value,
         target_unit: updatedHabit.target_unit,
@@ -133,7 +151,8 @@ export function ProfileScreen({
     setError(null);
     setSettingsSaved(null);
     const previousHabits = habitItems;
-    const nextHabits = habitItems.filter((habit) => habit.id !== habitId);
+    const removedHabit = habitItems.find((habit) => habit.id === habitId);
+    const nextHabits = ensurePrimaryHabit(habitItems.filter((habit) => habit.id !== habitId));
 
     if (nextHabits.length === 0) {
       setError("You need at least one habit.");
@@ -148,6 +167,10 @@ export function ProfileScreen({
 
     if (isDemo || isForcedDemoMode() || !hasSupabaseEnv()) {
       writeDemoRemovedHabitId(habitId);
+      const promotedHabit = nextHabits.find((habit) => habit.is_primary);
+      if (removedHabit?.is_primary && promotedHabit) {
+        writeDemoAdditionalHabit(promotedHabit);
+      }
       return;
     }
 
@@ -161,6 +184,22 @@ export function ProfileScreen({
       setHabitItems(previousHabits);
       setError(removeError.message);
       return;
+    }
+
+    if (removedHabit?.is_primary) {
+      const promotedHabit = nextHabits.find((habit) => habit.is_primary);
+      if (promotedHabit) {
+        const { error: promoteError } = await supabase
+          .from("user_habits")
+          .update({ is_primary: true })
+          .eq("id", promotedHabit.id);
+
+        if (promoteError) {
+          setHabitItems(previousHabits);
+          setError(promoteError.message);
+          return;
+        }
+      }
     }
 
     startTransition(() => {
@@ -278,6 +317,19 @@ export function ProfileScreen({
                         }))
                       }
                       placeholder="Habit name"
+                    />
+                    <Input
+                      value={draft?.minimum_label ?? habit.minimum_label ?? ""}
+                      onChange={(event) =>
+                        setDrafts((current) => ({
+                          ...current,
+                          [habit.id]: {
+                            ...current[habit.id],
+                            minimum_label: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Minimum version"
                     />
                     <Select
                       value={draft?.type ?? habit.type}

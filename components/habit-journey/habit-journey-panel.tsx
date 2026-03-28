@@ -18,7 +18,7 @@ function getProgressLabel(journey: HabitJourneyProgress) {
   }
 
   if (journey.trackedDays === 0) {
-    return `${current.title}: back to day 1. Start the run again.`;
+    return "This journey begins when you first log your new habit.";
   }
 
   return `${current.title}: ${Math.min(journey.completedDays, current.targetDays)} of ${current.targetDays} days`;
@@ -109,7 +109,7 @@ export function HabitJourneyPanel({
         <p className="mt-2 text-sm text-foreground/58">
           {journey.trackedDays > 0
             ? `${Math.round(journey.consistencyPercent * 100)}% consistency across your current ${journey.trackedDays}-day run.`
-            : "Your current run is back at the beginning."}
+            : "This journey begins when you first log your new habit."}
         </p>
       </div>
 

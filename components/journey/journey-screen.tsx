@@ -18,16 +18,24 @@ export function JourneyScreen({
 }) {
   const currentJourney = useMemo(
     () =>
-      habitJourneys.find((journey) => journey.habitId === currentJourneyHabitId) ??
-      habitJourneys[0] ??
-      null,
+      currentJourneyHabitId
+        ? habitJourneys.find((journey) => journey.habitId === currentJourneyHabitId) ?? null
+        : null,
     [currentJourneyHabitId, habitJourneys],
+  );
+  const hasCompletedJourney = useMemo(
+    () => habitJourneys.some((journey) => !journey.nextMilestone),
+    [habitJourneys],
   );
 
   if (!currentJourney) {
     return (
       <Card>
-        <p className="font-medium">Your journey will appear once your first habit is underway.</p>
+        <p className="font-medium">
+          {hasCompletedJourney
+            ? "This journey is complete. Add another habit when you are ready to begin a new one."
+            : "Your journey will appear once your first habit is underway."}
+        </p>
       </Card>
     );
   }
