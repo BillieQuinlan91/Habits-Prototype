@@ -16,6 +16,7 @@ export default async function ProfilePage() {
       <ProfileScreen
         profile={bootstrap.profile}
         habits={bootstrap.habits}
+        habitJourneys={bootstrap.habitJourneys}
         integrations={bootstrap.integrationInterests}
         preferences={bootstrap.notificationPreferences}
         isDemo={bootstrap.isDemo}

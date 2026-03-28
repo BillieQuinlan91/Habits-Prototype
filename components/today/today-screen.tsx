@@ -3,8 +3,9 @@
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CircleUserRound, MessageCircleHeart, Plus, Sparkles, Target } from "lucide-react";
+import { CheckCircle2, CircleUserRound, MessageCircleHeart, Plus, Target } from "lucide-react";
 
+import { HabitJourneyPanel } from "@/components/habit-journey/habit-journey-panel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -120,38 +121,6 @@ function renderFullScreenConfetti(colors: string[]) {
             transform: `rotate(${piece.rotate}deg)`,
           }}
         />
-      ))}
-    </div>
-  );
-}
-
-function HabitJourneyRow({ journey }: { journey: HabitJourneyProgress | null }) {
-  if (!journey) {
-    return null;
-  }
-
-  return (
-    <div className="grid grid-cols-3 gap-2">
-      {journey.milestones.map((milestone) => (
-        <div
-          key={milestone.phase}
-          className={cn(
-            "rounded-2xl border px-3 py-3",
-            milestone.isUnlocked
-              ? "border-success/25 bg-success/10"
-              : journey.nextMilestone?.phase === milestone.phase
-                ? "border-accent/25 bg-accent/8"
-                : "border-border/70 bg-surface/60",
-          )}
-        >
-          <p className="text-[11px] uppercase tracking-[0.18em] text-foreground/40">{milestone.shortLabel}</p>
-          <p className="mt-1 text-sm font-medium text-foreground/78">{milestone.title}</p>
-          <p className="mt-2 text-xs text-foreground/50">
-            {milestone.isUnlocked
-              ? "Unlocked"
-              : `${journey.completedDays}/${milestone.targetDays} days`}
-          </p>
-        </div>
       ))}
     </div>
   );
@@ -286,10 +255,6 @@ export function TodayScreen({
   const orderedItems = useMemo(
     () => [...items].sort((a, b) => Number(b.is_primary ?? false) - Number(a.is_primary ?? false)),
     [items],
-  );
-  const journeyByHabitId = useMemo(
-    () => new Map(journeys.map((journey) => [journey.habitId, journey])),
-    [journeys],
   );
   const visibleCircleDashboard = isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard;
   const isAcknowledging = acknowledgingHabitId !== null;
@@ -672,6 +637,12 @@ export function TodayScreen({
         </Card>
       </div>
 
+      <HabitJourneyPanel
+        journey={journeys[0] ?? null}
+        mode="teaser"
+        onOpen={() => router.push("/profile")}
+      />
+
       {receivedSupportDigest && showSupportDigest ? (
         <Card className="space-y-3 bg-surface/70">
           <div className="flex items-center gap-2 text-foreground/40">
@@ -698,7 +669,6 @@ export function TodayScreen({
         </div>
 
         {orderedItems.map((habit, index) => {
-          const journey = journeyByHabitId.get(habit.id) ?? null;
           const isCheckedIn = Boolean(habit.log?.completed);
           const isCardAcknowledging = acknowledgingHabitId === habit.id;
 
@@ -737,15 +707,6 @@ export function TodayScreen({
                       {habit.minimum_label ? habit.minimum_label : "Keep the threshold small enough to repeat."}
                     </p>
                   </div>
-                  {journey ? (
-                    <div className="mt-4">
-                      <div className="mb-3 flex items-center gap-2 text-foreground/40">
-                        <Sparkles className="h-4 w-4 text-accent2" />
-                        <p className="text-xs uppercase tracking-[0.18em]">Journey</p>
-                      </div>
-                      <HabitJourneyRow journey={journey} />
-                    </div>
-                  ) : null}
                 </div>
               </div>
 
