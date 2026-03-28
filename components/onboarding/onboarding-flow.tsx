@@ -389,11 +389,10 @@ export function OnboardingFlow({
           <Card className="rounded-3xl bg-surface/70">
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Your first-week focus</p>
-              <div className="space-y-2">
-                <p className="text-base font-medium text-foreground">{formatIdentityLabel(identityLabel)}</p>
-                <p className="text-base font-medium text-foreground">{habitLabel}</p>
-                <p className="mt-1 text-sm text-foreground/48">Minimum version: {minimumLabel}</p>
-              </div>
+              <p className="text-base font-medium leading-relaxed text-foreground">
+                {formatIdentityLabel(identityLabel)} by {habitLabel.toLowerCase()} and if I can&apos;t do that,
+                I&apos;ll at least do {minimumLabel.toLowerCase()}.
+              </p>
             </div>
           </Card>
 
