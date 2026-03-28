@@ -222,7 +222,7 @@ export function HabitJourneyPanel({
                 <p className={cn("mt-3 text-sm", milestone.isUnlocked ? "text-success/90" : "text-foreground/62")}>{description}</p>
                 <p className={cn("mt-3 text-sm", milestone.isUnlocked ? "text-success/75" : "text-foreground/52")}>
                   {milestone.isUnlocked
-                    ? `Unlocked with ${Math.round(milestone.consistencyPercent * 100)}% consistency.`
+                    ? "Unlocked at 80%+ consistency."
                     : `Needs ${milestone.requiredCompletedDays}/${milestone.targetDays} completed days and 80% consistency across the full phase.`}
                 </p>
               </div>
