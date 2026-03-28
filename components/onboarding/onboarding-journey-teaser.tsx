@@ -3,6 +3,20 @@
 import { cn } from "@/lib/utils";
 
 const STEP_ACTIVE_COUNTS = [1, 2, 3, 4, 4, 5] as const;
+const ACTIVE_MEMBER_SHADES = [
+  "bg-[#5E9C7D]",
+  "bg-[#69A584]",
+  "bg-[#74AE8C]",
+  "bg-[#81B997]",
+  "bg-[#8CC39F]",
+] as const;
+const ACTIVE_MEMBER_SHADOWS = [
+  "shadow-[0_10px_24px_rgba(94,156,125,0.2)]",
+  "shadow-[0_10px_24px_rgba(105,165,132,0.2)]",
+  "shadow-[0_10px_24px_rgba(116,174,140,0.2)]",
+  "shadow-[0_10px_24px_rgba(129,185,151,0.2)]",
+  "shadow-[0_10px_24px_rgba(140,195,159,0.2)]",
+] as const;
 
 export function OnboardingJourneyTeaser({
   step,
@@ -21,6 +35,8 @@ export function OnboardingJourneyTeaser({
           {Array.from({ length: 5 }, (_, index) => {
             const isActive = index < activeCount;
             const isPending = index === activeCount && activeCount < 5;
+            const activeShade = ACTIVE_MEMBER_SHADES[index];
+            const activeShadow = ACTIVE_MEMBER_SHADOWS[index];
 
             return (
               <div
@@ -33,7 +49,7 @@ export function OnboardingJourneyTeaser({
                     "flex items-center justify-center rounded-full border transition-all duration-500 ease-out",
                     index === 2 ? "h-14 w-14" : "h-11 w-11",
                     isActive
-                      ? "border-white/55 bg-success shadow-[0_10px_24px_rgba(111,175,143,0.2)]"
+                      ? cn("border-white/55", activeShade, activeShadow)
                       : isPending
                         ? "border-success/25 bg-card/95"
                         : "border-border/70 bg-card/78",
