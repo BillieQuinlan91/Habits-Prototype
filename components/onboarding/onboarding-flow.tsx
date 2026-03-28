@@ -409,7 +409,7 @@ export function OnboardingFlow({
             <div className="flex items-center gap-3">
               <LockKeyhole className="h-4 w-4 text-accent" />
               <p className="text-sm text-foreground/62">
-                For your first week, the goal is consistency, not range.
+                For your first week, the goal is consistency.
               </p>
             </div>
           </div>
