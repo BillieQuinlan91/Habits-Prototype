@@ -2,19 +2,19 @@
 
 import { cn } from "@/lib/utils";
 
-const RING_CONFIG = [
-  { stepThreshold: 4, size: 138, stroke: 8, color: "stroke-accent2" },
-  { stepThreshold: 2, size: 104, stroke: 8, color: "stroke-accent" },
-  { stepThreshold: 1, size: 70, stroke: 8, color: "stroke-success" },
+const CIRCLE_CONFIG = [
+  { size: 52, color: "stroke-success" },
+  { size: 72, color: "stroke-accent" },
+  { size: 94, color: "stroke-accent2" },
 ] as const;
 
 const STEP_PROGRESS = [
-  [0.12, 0.06, 0.04],
-  [0.22, 0.28, 0.16],
-  [0.28, 0.52, 0.34],
-  [0.38, 1, 0.48],
-  [0.62, 1, 0.76],
-  [0.94, 1, 1],
+  [0.28, 0.08, 0.04],
+  [0.72, 0.16, 0.08],
+  [1, 0.36, 0.12],
+  [1, 0.74, 0.22],
+  [1, 1, 0.48],
+  [1, 1, 0.9],
 ] as const;
 
 export function OnboardingJourneyTeaser({
@@ -26,57 +26,55 @@ export function OnboardingJourneyTeaser({
   const progress = STEP_PROGRESS[stepIndex];
 
   return (
-    <div className="flex justify-center py-1">
-      <div className="relative flex h-[138px] w-[138px] items-center justify-center rounded-full bg-surface/65">
-        <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_center,_rgba(119,164,191,0.12),_transparent_65%)]" />
-        {RING_CONFIG.map((ring, index) => {
-          const radius = (ring.size - ring.stroke) / 2;
+    <div className="rounded-[28px] bg-surface/50 px-4 py-4">
+      <div className="flex items-end justify-center gap-4 sm:gap-5">
+        {CIRCLE_CONFIG.map((circle, index) => {
+          const stroke = 7;
+          const radius = (circle.size - stroke) / 2;
           const circumference = 2 * Math.PI * radius;
           const ratio = progress[index];
           const dashOffset = circumference * (1 - ratio);
-          const isEmphasized = stepIndex + 1 >= ring.stepThreshold;
+          const fillOpacity = index === 0 ? "bg-success/10" : index === 1 ? "bg-accent/10" : "bg-accent2/10";
 
           return (
-            <svg
-              key={ring.size}
-              width={ring.size}
-              height={ring.size}
-              viewBox={`0 0 ${ring.size} ${ring.size}`}
-              className="absolute"
-              aria-hidden="true"
-            >
-              <circle
-                cx={ring.size / 2}
-                cy={ring.size / 2}
-                r={radius}
-                fill="none"
-                stroke="currentColor"
-                className="text-foreground/10"
-                strokeWidth={ring.stroke}
-              />
-              <circle
-                cx={ring.size / 2}
-                cy={ring.size / 2}
-                r={radius}
-                fill="none"
-                strokeWidth={ring.stroke}
-                strokeLinecap="round"
-                strokeDasharray={circumference}
-                strokeDashoffset={dashOffset}
+            <div key={circle.size} className="relative" aria-hidden="true">
+              <div
                 className={cn(
-                  "origin-center -rotate-90 transition-all duration-500 ease-out",
-                  ring.color,
-                  isEmphasized ? "opacity-100" : "opacity-45",
+                  "absolute inset-0 rounded-full blur-[1px]",
+                  fillOpacity,
+                  ratio > 0.95 ? "opacity-100" : ratio > 0.45 ? "opacity-80" : "opacity-55",
                 )}
-                style={{ transformOrigin: "50% 50%" }}
               />
-            </svg>
+              <svg width={circle.size} height={circle.size} viewBox={`0 0 ${circle.size} ${circle.size}`} className="relative">
+                <circle
+                  cx={circle.size / 2}
+                  cy={circle.size / 2}
+                  r={radius}
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-foreground/10"
+                  strokeWidth={stroke}
+                />
+                <circle
+                  cx={circle.size / 2}
+                  cy={circle.size / 2}
+                  r={radius}
+                  fill="none"
+                  strokeWidth={stroke}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  className={cn(
+                    "origin-center -rotate-90 transition-all duration-500 ease-out",
+                    circle.color,
+                    ratio > 0.95 ? "opacity-100" : "opacity-75",
+                  )}
+                  style={{ transformOrigin: "50% 50%" }}
+                />
+              </svg>
+            </div>
           );
         })}
-        <div className="relative z-10 rounded-full border border-white/55 bg-card/90 px-4 py-2 text-center shadow-sm">
-          <p className="text-[10px] uppercase tracking-[0.22em] text-foreground/36">Journey</p>
-          <p className="mt-1 text-sm text-foreground/56">Starting to take shape</p>
-        </div>
       </div>
     </div>
   );
