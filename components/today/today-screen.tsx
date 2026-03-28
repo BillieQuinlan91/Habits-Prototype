@@ -3,7 +3,7 @@
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, LockKeyhole, Target } from "lucide-react";
+import { CheckCircle2, CircleUserRound, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -230,9 +230,9 @@ export function TodayScreen({
           </div>
         </div>
 
-        <Card className="space-y-3 bg-surface/70">
+        <Card className="space-y-5 bg-surface/70 px-5 py-4">
           <div className="flex items-center gap-2 text-foreground/40">
-            <LockKeyhole className="h-4 w-4 text-accent" />
+            <CircleUserRound className="h-4 w-4 text-accent" />
             <p className="text-xs uppercase tracking-[0.2em]">Identity</p>
           </div>
           <p className="font-display text-2xl font-normal leading-tight tracking-tight">
