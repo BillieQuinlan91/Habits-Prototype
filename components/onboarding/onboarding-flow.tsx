@@ -241,6 +241,7 @@ export function OnboardingFlow({
               <p className="text-sm font-medium text-foreground">Who are you becoming?</p>
               <div className="mt-3">
                 <Select
+                  className={cn(!state.identityPreset && "text-foreground/38")}
                   value={state.identityPreset}
                   onChange={(event) =>
                     setState((current) => ({
@@ -249,7 +250,7 @@ export function OnboardingFlow({
                     }))
                   }
                 >
-                  <option value="">who are you becoming</option>
+                  <option value="">Who are you becoming</option>
                   {IDENTITY_PRESETS.map((preset) => (
                     <option key={preset} value={preset}>
                       {preset === "Custom" ? preset : formatIdentityLabel(preset)}
