@@ -96,3 +96,19 @@ export function deriveHabitJourney(
 export function getNewlyUnlockedMilestone(journey: HabitJourneyProgress) {
   return journey.milestones.find((milestone) => milestone.isEligibleToday) ?? null;
 }
+
+export function getCurrentJourneyHabitId(journeys: HabitJourneyProgress[]) {
+  if (!journeys.length) {
+    return null;
+  }
+
+  const inProgressJourneys = journeys.filter((journey) => journey.nextMilestone);
+  if (inProgressJourneys.length) {
+    return inProgressJourneys.sort((a, b) => a.elapsedDays - b.elapsedDays)[0].habitId;
+  }
+
+  return journeys
+    .slice()
+    .sort((a, b) => b.elapsedDays - a.elapsedDays)[0]
+    ?.habitId ?? null;
+}

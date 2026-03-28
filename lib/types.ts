@@ -103,6 +103,10 @@ export type HabitJourneyProgress = {
   nextMilestone: HabitJourneyMilestone | null;
 };
 
+export type CurrentJourneyHabit = {
+  habitId: string;
+};
+
 export type WeeklyMemberScore = {
   user_id: string;
   full_name: string;

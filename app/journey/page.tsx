@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { AppShell } from "@/components/providers/app-shell";
-import { TodayScreen } from "@/components/today/today-screen";
+import { JourneyScreen } from "@/components/journey/journey-screen";
 import { getAppBootstrap } from "@/lib/data/app";
 
-export default async function TodayPage() {
+export default async function JourneyPage() {
   const bootstrap = await getAppBootstrap();
 
   if (!bootstrap.profile && !bootstrap.isDemo) {
@@ -20,17 +20,10 @@ export default async function TodayPage() {
   }
 
   return (
-    <AppShell activeTab="today" isDemo={bootstrap.isDemo} showFeedbackLink>
-      <TodayScreen
-        profile={bootstrap.profile}
-        habits={bootstrap.habits}
-        historyLogs={bootstrap.historyLogs}
+    <AppShell activeTab="journey" isDemo={bootstrap.isDemo} showFeedbackLink>
+      <JourneyScreen
         habitJourneys={bootstrap.habitJourneys}
         currentJourneyHabitId={bootstrap.currentJourneyHabitId}
-        canAddSecondHabit={bootstrap.canAddSecondHabit}
-        circleDashboard={bootstrap.circleDashboard}
-        receivedSupportDigest={bootstrap.receivedSupportDigest}
-        isDemo={bootstrap.isDemo}
       />
     </AppShell>
   );

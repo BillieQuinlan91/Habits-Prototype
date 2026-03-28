@@ -15,7 +15,7 @@ import {
   DEMO_HABIT_LOG_KEY,
   DEMO_MILESTONES_KEY,
 } from "@/lib/demo/overrides";
-import { deriveHabitJourney } from "@/lib/habit-journey";
+import { deriveHabitJourney, getCurrentJourneyHabitId } from "@/lib/habit-journey";
 import { mapTeamPageData } from "@/lib/team/teamMappers";
 import { calculateStreak, calculateUserWeeklyScore } from "@/lib/score";
 import { isForcedDemoMode } from "@/lib/supabase/env";
@@ -43,6 +43,7 @@ type AppBootstrap = {
   habits: TodayHabitItem[];
   historyLogs: HabitLog[];
   habitJourneys: HabitJourneyProgress[];
+  currentJourneyHabitId: string | null;
   canAddSecondHabit: boolean;
   templates: HabitTemplate[];
   organizations: { id: string; name: string }[];
@@ -77,6 +78,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       habits: [],
       historyLogs: [],
       habitJourneys: [],
+      currentJourneyHabitId: null,
       canAddSecondHabit: false,
       templates: [],
       organizations: demoOrganizations,
@@ -137,6 +139,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
   const historyLogs = (logsResult.data ?? []) as HabitLog[];
   const habitMilestones = (milestoneResult.data ?? []) as HabitMilestoneUnlock[];
   const habitJourneys = habits.map((habit) => deriveHabitJourney(habit, historyLogs, habitMilestones));
+  const currentJourneyHabitId = getCurrentJourneyHabitId(habitJourneys);
   const profile = (profileResult.data as Profile | null) ?? null;
   const circleDashboard = profile?.tribe_id ? await getCircleDashboard(profile.tribe_id, user.id) : null;
   const teamPageData = profile?.tribe_id ? await getTeamPageData(profile.tribe_id) : null;
@@ -147,6 +150,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
     habits,
     historyLogs,
     habitJourneys,
+    currentJourneyHabitId,
     canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
     templates: (templatesResult.data ?? []) as HabitTemplate[],
     organizations: (organizationsResult.data ?? []) as { id: string; name: string }[],
@@ -573,6 +577,7 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
     })),
   ] as HabitLog[];
   const habitJourneys = habits.map((habit) => deriveHabitJourney(habit, historyLogs, demoMilestones));
+  const currentJourneyHabitId = getCurrentJourneyHabitId(habitJourneys);
 
   const memberHabits: UserHabit[] = [
     ...allDemoHabits,
@@ -643,6 +648,7 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
     habits,
     historyLogs,
     habitJourneys,
+    currentJourneyHabitId,
     canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
     templates: demoHabitTemplates,
     organizations: demoOrganizations,

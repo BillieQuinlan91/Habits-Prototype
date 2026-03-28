@@ -1,10 +1,9 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Bell, Cable, LogOut, Trash2, Users } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { HabitJourneyPanel } from "@/components/habit-journey/habit-journey-panel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import { Select } from "@/components/ui/select";
 import { ToggleChip } from "@/components/ui/toggle-chip";
 import { createClient } from "@/lib/supabase/client";
 import { signOutAction } from "@/lib/data/actions";
-import { HabitJourneyProgress, IntegrationInterest, NotificationPreference, Profile, UserHabit } from "@/lib/types";
+import { IntegrationInterest, NotificationPreference, Profile, UserHabit } from "@/lib/types";
 import { hasSupabaseEnv, isForcedDemoMode } from "@/lib/supabase/env";
 import { INTEGRATION_OPTIONS } from "@/lib/constants";
 import { formatIdentityLabel } from "@/lib/utils";
@@ -21,14 +20,12 @@ import { formatIdentityLabel } from "@/lib/utils";
 export function ProfileScreen({
   profile,
   habits,
-  habitJourneys,
   integrations,
   preferences,
   isDemo = false,
 }: {
   profile: Profile | null;
   habits: UserHabit[];
-  habitJourneys: HabitJourneyProgress[];
   integrations: IntegrationInterest[];
   preferences: NotificationPreference | null;
   isDemo?: boolean;
@@ -36,9 +33,6 @@ export function ProfileScreen({
   const router = useRouter();
   const [habitItems, setHabitItems] = useState(habits);
   const focusHabit = habitItems.find((habit) => habit.is_primary) ?? habitItems[0] ?? null;
-  const [selectedJourneyHabitId, setSelectedJourneyHabitId] = useState<string | null>(
-    focusHabit?.id ?? habitItems[0]?.id ?? null,
-  );
   const [editingHabitId, setEditingHabitId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, Partial<UserHabit>>>({});
   const [integrationItems, setIntegrationItems] = useState(integrations);
@@ -50,17 +44,6 @@ export function ProfileScreen({
   const [error, setError] = useState<string | null>(null);
   const [settingsSaved, setSettingsSaved] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const selectedJourney = useMemo(() => {
-    if (!habitJourneys.length) {
-      return null;
-    }
-
-    return (
-      habitJourneys.find((journey) => journey.habitId === selectedJourneyHabitId) ??
-      habitJourneys.find((journey) => journey.habitId === focusHabit?.id) ??
-      habitJourneys[0]
-    );
-  }, [focusHabit?.id, habitJourneys, selectedJourneyHabitId]);
 
   function startEditing(habit: UserHabit) {
     setEditingHabitId(habit.id);
@@ -281,30 +264,6 @@ export function ProfileScreen({
             </p>
           ) : null}
         </Card>
-      ) : null}
-
-      {selectedJourney ? (
-        <div className="space-y-4">
-          {habitJourneys.length > 1 ? (
-            <div className="flex flex-wrap gap-2">
-              {habitJourneys.map((journey) => (
-                <button
-                  key={journey.habitId}
-                  type="button"
-                  onClick={() => setSelectedJourneyHabitId(journey.habitId)}
-                  className={`rounded-full border px-4 py-2 text-sm transition ${
-                    selectedJourney.habitId === journey.habitId
-                      ? "border-accent bg-accent/10 text-accent"
-                      : "border-border bg-card text-foreground/56"
-                  }`}
-                >
-                  {journey.habitName}
-                </button>
-              ))}
-            </div>
-          ) : null}
-          <HabitJourneyPanel journey={selectedJourney} mode="timeline" />
-        </div>
       ) : null}
 
       <Card className="space-y-4">

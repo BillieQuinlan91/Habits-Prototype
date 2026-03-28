@@ -22,7 +22,7 @@ import {
   writeDemoMilestoneUnlock,
   writeDemoSocialActivity,
 } from "@/lib/demo/overrides";
-import { deriveHabitJourney, getNewlyUnlockedMilestone } from "@/lib/habit-journey";
+import { deriveHabitJourney, getCurrentJourneyHabitId, getNewlyUnlockedMilestone } from "@/lib/habit-journey";
 import { createClient } from "@/lib/supabase/client";
 import { hasSeenSupportDigest, markSupportDigestSeen } from "@/lib/support";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
@@ -217,6 +217,7 @@ export function TodayScreen({
   habits,
   historyLogs,
   habitJourneys,
+  currentJourneyHabitId,
   canAddSecondHabit,
   circleDashboard,
   receivedSupportDigest,
@@ -226,6 +227,7 @@ export function TodayScreen({
   habits: TodayHabitItem[];
   historyLogs: HabitLog[];
   habitJourneys: HabitJourneyProgress[];
+  currentJourneyHabitId: string | null;
   canAddSecondHabit: boolean;
   circleDashboard: CircleDashboard | null;
   receivedSupportDigest: ReceivedSupportDigest | null;
@@ -256,6 +258,10 @@ export function TodayScreen({
     () => [...items].sort((a, b) => Number(b.is_primary ?? false) - Number(a.is_primary ?? false)),
     [items],
   );
+  const currentJourney = useMemo(() => {
+    const currentHabitId = getCurrentJourneyHabitId(journeys) ?? currentJourneyHabitId;
+    return journeys.find((journey) => journey.habitId === currentHabitId) ?? journeys[0] ?? null;
+  }, [currentJourneyHabitId, journeys]);
   const visibleCircleDashboard = isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard;
   const isAcknowledging = acknowledgingHabitId !== null;
 
@@ -638,9 +644,9 @@ export function TodayScreen({
       </div>
 
       <HabitJourneyPanel
-        journey={journeys[0] ?? null}
+        journey={currentJourney}
         mode="teaser"
-        onOpen={() => router.push("/profile")}
+        onOpen={() => router.push("/journey")}
       />
 
       {receivedSupportDigest && showSupportDigest ? (

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ReactNode } from "react";
-import { CircleUserRound, House, MessageSquareText, Users } from "lucide-react";
+import { CircleUserRound, House, MessageSquareText, Sparkles, Users } from "lucide-react";
 
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -12,13 +12,14 @@ export function AppShell({
   showFeedbackLink = false,
 }: {
   children: ReactNode;
-  activeTab: "today" | "tribe" | "profile";
+  activeTab: "today" | "tribe" | "journey" | "profile";
   isDemo?: boolean;
   showFeedbackLink?: boolean;
 }) {
   const tabs = [
     { href: "/today", label: "Today", icon: House, key: "today" },
     { href: "/tribe", label: "Team", icon: Users, key: "tribe" },
+    { href: "/journey", label: "Journey", icon: Sparkles, key: "journey" },
     { href: "/profile", label: "Profile", icon: CircleUserRound, key: "profile" },
   ] as const;
 

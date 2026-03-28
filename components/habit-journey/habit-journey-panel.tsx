@@ -26,7 +26,7 @@ export function HabitJourneyPanel({
   onOpen,
 }: {
   journey: HabitJourneyProgress | null;
-  mode: "teaser" | "timeline";
+  mode: "teaser" | "concentric";
   onOpen?: () => void;
 }) {
   if (!journey) {
@@ -75,6 +75,28 @@ export function HabitJourneyPanel({
     );
   }
 
+  const maxTarget = 75;
+  const rings = [
+    {
+      milestone: journey.milestones[2],
+      size: 240,
+      stroke: 10,
+      activeTarget: 75,
+    },
+    {
+      milestone: journey.milestones[1],
+      size: 182,
+      stroke: 10,
+      activeTarget: 30,
+    },
+    {
+      milestone: journey.milestones[0],
+      size: 126,
+      stroke: 10,
+      activeTarget: 7,
+    },
+  ];
+
   return (
     <Card className="space-y-5">
       <div>
@@ -86,6 +108,66 @@ export function HabitJourneyPanel({
         <p className="mt-2 text-sm text-foreground/58">
           {Math.round(journey.consistencyPercent * 100)}% consistency across {journey.elapsedDays} days.
         </p>
+      </div>
+
+      <div className="flex justify-center py-2">
+        <div className="relative flex h-[240px] w-[240px] items-center justify-center">
+          {rings.map(({ milestone, size, stroke, activeTarget }) => {
+            if (!milestone) {
+              return null;
+            }
+
+            const radius = (size - stroke) / 2;
+            const circumference = 2 * Math.PI * radius;
+            const ratio = milestone.isUnlocked
+              ? 1
+              : Math.min(journey.completedDays, activeTarget) / activeTarget;
+            const dashOffset = circumference * (1 - ratio);
+            const strokeClass = milestone.isUnlocked
+              ? "stroke-success"
+              : journey.nextMilestone?.phase === milestone.phase
+                ? "stroke-accent"
+                : "stroke-foreground/20";
+
+            return (
+              <svg
+                key={milestone.phase}
+                width={size}
+                height={size}
+                viewBox={`0 0 ${size} ${size}`}
+                className="absolute"
+                aria-hidden="true"
+              >
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  fill="none"
+                  stroke="currentColor"
+                  className="text-foreground/10"
+                  strokeWidth={stroke}
+                />
+                <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  fill="none"
+                  strokeWidth={stroke}
+                  className={cn("origin-center -rotate-90 transition-all", strokeClass)}
+                  strokeLinecap="round"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={dashOffset}
+                  style={{ transformOrigin: "50% 50%" }}
+                />
+              </svg>
+            );
+          })}
+          <div className="relative z-10 text-center">
+            <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Current arc</p>
+            <p className="mt-2 font-display text-4xl font-normal tracking-tight">{Math.min(journey.elapsedDays, maxTarget)}</p>
+            <p className="text-sm text-foreground/56">of 75 days</p>
+          </div>
+        </div>
       </div>
 
       <div className="space-y-4">
