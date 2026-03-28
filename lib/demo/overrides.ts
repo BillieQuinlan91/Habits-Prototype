@@ -1,7 +1,9 @@
-import { CircleDashboard, CircleMemberStatus } from "@/lib/types";
+import { CircleDashboard, CircleMemberStatus, HabitLog, TodayHabitItem } from "@/lib/types";
+import { toDateKey } from "@/lib/utils";
 
 const DEMO_CHECKIN_KEY = "becoming-demo-checkin-status";
 const DEMO_SOCIAL_ACTIVITY_KEY = "becoming-demo-social-activity";
+const DEMO_HABIT_LOG_KEY = "becoming-demo-habit-log";
 
 export function writeDemoCheckinStatus(status: "checked_in" | "pending") {
   if (typeof window === "undefined") {
@@ -9,6 +11,84 @@ export function writeDemoCheckinStatus(status: "checked_in" | "pending") {
   }
 
   window.sessionStorage.setItem(DEMO_CHECKIN_KEY, status);
+}
+
+export function writeDemoHabitLog(entry: {
+  habitId: string;
+  completed: boolean;
+  progressValue: number | null;
+  logDate?: string;
+}) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const payload = {
+    habitId: entry.habitId,
+    completed: entry.completed,
+    progressValue: entry.progressValue,
+    logDate: entry.logDate ?? toDateKey(),
+  };
+
+  window.sessionStorage.setItem(DEMO_HABIT_LOG_KEY, JSON.stringify(payload));
+}
+
+export function readDemoHabitLog(): {
+  habitId: string;
+  completed: boolean;
+  progressValue: number | null;
+  logDate: string;
+} | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  const raw = window.sessionStorage.getItem(DEMO_HABIT_LOG_KEY);
+  if (!raw) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed?.logDate !== toDateKey()) {
+      window.sessionStorage.removeItem(DEMO_HABIT_LOG_KEY);
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+export function applyDemoHabitOverride(habits: TodayHabitItem[]) {
+  const override = readDemoHabitLog();
+
+  if (!override) {
+    return habits;
+  }
+
+  return habits.map((habit) => {
+    if (habit.id !== override.habitId) {
+      return habit;
+    }
+
+    const log: HabitLog = {
+      id: habit.log?.id ?? `demo-log-${habit.id}`,
+      user_id: habit.user_id,
+      user_habit_id: habit.id,
+      log_date: override.logDate,
+      completed: override.completed,
+      progress_value: override.progressValue,
+      notes: habit.log?.notes ?? null,
+      created_at: habit.log?.created_at,
+      updated_at: habit.log?.updated_at,
+    };
+
+    return {
+      ...habit,
+      log,
+    };
+  });
 }
 
 export function readDemoCheckinStatus() {

@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input";
 import { PostCheckInPopup } from "@/components/today/post-check-in-popup";
 import { TeamRing } from "@/components/ui/team-ring";
 import {
+  applyDemoHabitOverride,
   applyDemoCheckinOverride,
   writeDemoCheckinStatus,
+  writeDemoHabitLog,
   writeDemoSocialActivity,
 } from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
@@ -50,7 +52,7 @@ export function TodayScreen({
   isDemo?: boolean;
 }) {
   const router = useRouter();
-  const [items, setItems] = useState(habits);
+  const [items, setItems] = useState(() => (isDemo ? applyDemoHabitOverride(habits) : habits));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [popupState, setPopupState] = useState<PostCheckInPopupState>({ kind: "idle" });
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
@@ -67,6 +69,10 @@ export function TodayScreen({
     [circleDashboard, isDemo],
   );
   const isAcknowledging = acknowledgmentState === "acknowledging";
+
+  useEffect(() => {
+    setItems(isDemo ? applyDemoHabitOverride(habits) : habits);
+  }, [habits, isDemo]);
 
   useEffect(() => {
     return () => {
@@ -91,6 +97,11 @@ export function TodayScreen({
   async function persistLog(habit: TodayHabitItem, completedValue: boolean, progressValue: number | null) {
     if (isDemo || !hasSupabaseEnv()) {
       writeDemoCheckinStatus(completedValue ? "checked_in" : "pending");
+      writeDemoHabitLog({
+        habitId: habit.id,
+        completed: completedValue,
+        progressValue,
+      });
       return;
     }
 
