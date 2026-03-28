@@ -23,26 +23,24 @@ export function AppShell({
   ] as const;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 pb-28 pt-8 sm:max-w-lg">
-      <header className="mb-6 flex items-center justify-between">
-        <div>
-          <p className="text-xs tracking-[0.18em] text-foreground/38">
-            Quiet progress, repeated often.
-          </p>
-          <h1 className="font-display text-4xl font-normal tracking-tight">{APP_NAME}</h1>
+    <div className="mx-auto flex min-h-screen max-w-md flex-col px-4 pb-28 pt-5 sm:max-w-lg">
+      <header className="mb-4 flex items-center justify-between rounded-full border border-border/70 bg-card/92 px-3.5 py-2 shadow-soft backdrop-blur">
+        <div className="flex items-center gap-2.5">
+          <div className="h-2.5 w-2.5 rounded-full bg-accent" />
+          <h1 className="text-sm font-semibold tracking-[0.08em] text-foreground/78">{APP_NAME}</h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
           {showFeedbackLink ? (
             <Link
               href="/feedback"
-              className="inline-flex h-9 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs font-medium text-foreground/70"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border/80 bg-surface/70 px-2.5 text-[11px] font-medium text-foreground/62"
             >
-              <MessageSquareText className="h-3.5 w-3.5" />
+              <MessageSquareText className="h-3 w-3" />
               Feedback
             </Link>
           ) : null}
           {isDemo ? (
-            <span className="rounded-full bg-accent/12 px-3 py-1 text-xs font-semibold text-accent">
+            <span className="rounded-full border border-accent/18 bg-accent/10 px-2.5 py-1 text-[11px] font-semibold text-accent">
               Demo mode
             </span>
           ) : null}
