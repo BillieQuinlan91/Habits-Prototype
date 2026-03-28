@@ -528,7 +528,7 @@ export function OnboardingFlow({
           <OnboardingJourneyTeaser step={step} />
           <div className="space-y-2">
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 6</p>
-            <h2 className="font-display text-3xl font-normal tracking-tight">Your circle will see today</h2>
+            <h2 className="font-display text-3xl font-normal tracking-tight">Log your first win</h2>
             <p className="text-sm text-foreground/58">
               First check-in now. After that, you’ll land straight in the circle dashboard.
             </p>
@@ -549,8 +549,9 @@ export function OnboardingFlow({
           </Card>
 
           <div className="rounded-3xl border border-border/80 bg-card px-4 py-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Day one check-in</p>
-            <p className="mt-2 font-medium">{habitLabel}</p>
+            <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">First goal</p>
+            <p className="mt-2 font-medium">Set up new habit</p>
+            <p className="mt-1 text-sm text-foreground/56">Main habit: {habitLabel}</p>
             <p className="mt-1 text-sm text-foreground/56">Minimum version: {minimumLabel}</p>
           </div>
 
@@ -562,7 +563,7 @@ export function OnboardingFlow({
               Back
             </Button>
             <Button className="flex-1" onClick={finishOnboarding} disabled={saving}>
-              {saving ? "Checking in..." : "Check in for day one"}
+              {saving ? "Logging..." : "Log my first day"}
             </Button>
           </div>
         </Card>
