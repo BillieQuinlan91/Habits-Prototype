@@ -35,6 +35,23 @@ const initialState: OnboardingState = {
 
 const totalSteps = 6;
 
+function formatHabitActionClause(habit: string) {
+  const trimmed = habit.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  if (/^wake up\b/i.test(trimmed)) {
+    return trimmed.replace(/^wake up\b/i, "waking up");
+  }
+
+  if (/^phone on\b/i.test(trimmed)) {
+    return `putting my ${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+  }
+
+  return `doing ${trimmed.charAt(0).toLowerCase()}${trimmed.slice(1)}`;
+}
+
 export function OnboardingFlow({
   tribes,
   organizations,
@@ -390,7 +407,7 @@ export function OnboardingFlow({
             <div className="space-y-3">
               <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Your first-week focus</p>
               <p className="text-base font-medium leading-relaxed text-foreground">
-                {formatIdentityLabel(identityLabel)} by doing {habitLabel.toLowerCase()} and if I can&apos;t do that,
+                {formatIdentityLabel(identityLabel)} by {formatHabitActionClause(habitLabel)} and if I can&apos;t do that,
                 I&apos;ll at least do {minimumLabel.toLowerCase()}.
               </p>
             </div>
