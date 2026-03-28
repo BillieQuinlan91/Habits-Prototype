@@ -112,3 +112,71 @@ export function getCurrentJourneyHabitId(journeys: HabitJourneyProgress[]) {
     .sort((a, b) => b.elapsedDays - a.elapsedDays)[0]
     ?.habitId ?? null;
 }
+
+export type JourneyPreviewState = "day7" | "day30" | "day75";
+
+const JOURNEY_PREVIEW_MAP: Record<
+  JourneyPreviewState,
+  { phase: HabitMilestonePhase; completedDays: number; elapsedDays: number }
+> = {
+  day7: { phase: "day_7", completedDays: 6, elapsedDays: 6 },
+  day30: { phase: "day_30", completedDays: 24, elapsedDays: 24 },
+  day75: { phase: "day_75", completedDays: 60, elapsedDays: 60 },
+};
+
+export function parseJourneyPreview(value?: string): JourneyPreviewState | null {
+  if (value === "day7" || value === "day30" || value === "day75") {
+    return value;
+  }
+
+  return null;
+}
+
+export function applyJourneyPreview(
+  journeys: HabitJourneyProgress[],
+  currentJourneyHabitId: string | null,
+  preview: JourneyPreviewState | null,
+) {
+  if (!preview || !journeys.length) {
+    return {
+      habitJourneys: journeys,
+      currentJourneyHabitId,
+      canAddSecondHabit: journeys.some((journey) => journey.canAddSecondHabit),
+    };
+  }
+
+  const selectedHabitId = currentJourneyHabitId ?? journeys[0]?.habitId ?? null;
+  const config = JOURNEY_PREVIEW_MAP[preview];
+
+  const habitJourneys = journeys.map((journey) => {
+    if (journey.habitId !== selectedHabitId) {
+      return journey;
+    }
+
+    const milestones = journey.milestones.map((milestone) => {
+      const targetReached = config.completedDays >= milestone.requiredCompletedDays;
+      return {
+        ...milestone,
+        isUnlocked: targetReached,
+        unlockedAt: targetReached ? new Date().toISOString() : null,
+        isEligibleToday: false,
+      };
+    });
+
+    return {
+      ...journey,
+      completedDays: config.completedDays,
+      elapsedDays: config.elapsedDays,
+      consistencyPercent: config.completedDays / config.elapsedDays,
+      canAddSecondHabit: preview === "day75",
+      milestones,
+      nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
+    };
+  });
+
+  return {
+    habitJourneys,
+    currentJourneyHabitId: selectedHabitId,
+    canAddSecondHabit: preview === "day75" || habitJourneys.some((journey) => journey.canAddSecondHabit),
+  };
+}

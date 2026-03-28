@@ -3,9 +3,21 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/providers/app-shell";
 import { TodayScreen } from "@/components/today/today-screen";
 import { getAppBootstrap } from "@/lib/data/app";
+import { applyJourneyPreview, parseJourneyPreview } from "@/lib/habit-journey";
 
-export default async function TodayPage() {
+export default async function TodayPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ preview?: string }>;
+}) {
   const bootstrap = await getAppBootstrap();
+  const resolvedSearchParams = await searchParams;
+  const preview = parseJourneyPreview(resolvedSearchParams?.preview);
+  const previewedJourney = applyJourneyPreview(
+    bootstrap.habitJourneys,
+    bootstrap.currentJourneyHabitId,
+    preview,
+  );
 
   if (!bootstrap.profile && !bootstrap.isDemo) {
     redirect("/auth");
@@ -25,9 +37,9 @@ export default async function TodayPage() {
         profile={bootstrap.profile}
         habits={bootstrap.habits}
         historyLogs={bootstrap.historyLogs}
-        habitJourneys={bootstrap.habitJourneys}
-        currentJourneyHabitId={bootstrap.currentJourneyHabitId}
-        canAddSecondHabit={bootstrap.canAddSecondHabit}
+        habitJourneys={previewedJourney.habitJourneys}
+        currentJourneyHabitId={previewedJourney.currentJourneyHabitId}
+        canAddSecondHabit={previewedJourney.canAddSecondHabit}
         circleDashboard={bootstrap.circleDashboard}
         receivedSupportDigest={bootstrap.receivedSupportDigest}
         isDemo={bootstrap.isDemo}

@@ -4,14 +4,17 @@ import { useMemo } from "react";
 
 import { HabitJourneyPanel } from "@/components/habit-journey/habit-journey-panel";
 import { Card } from "@/components/ui/card";
+import { JourneyPreviewState } from "@/lib/habit-journey";
 import { HabitJourneyProgress } from "@/lib/types";
 
 export function JourneyScreen({
   habitJourneys,
   currentJourneyHabitId,
+  preview,
 }: {
   habitJourneys: HabitJourneyProgress[];
   currentJourneyHabitId: string | null;
+  preview: JourneyPreviewState | null;
 }) {
   const currentJourney = useMemo(
     () =>
@@ -38,6 +41,15 @@ export function JourneyScreen({
           Three rings, one arc. The outer ring is the full 75-day identity stretch.
         </p>
       </div>
+
+      {preview ? (
+        <Card className="border-accent/20 bg-accent/6 py-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-accent">Preview mode</p>
+          <p className="mt-2 text-sm text-foreground/62">
+            Showing the milestone state for {preview === "day7" ? "6/7" : preview === "day30" ? "24/30" : "60/75"}.
+          </p>
+        </Card>
+      ) : null}
 
       <HabitJourneyPanel journey={currentJourney} mode="concentric" />
     </div>
