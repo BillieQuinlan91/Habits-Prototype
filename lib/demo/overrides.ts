@@ -1,9 +1,17 @@
 import { CircleDashboard, CircleMemberStatus, HabitLog, TodayHabitItem } from "@/lib/types";
 import { toDateKey } from "@/lib/utils";
 
-const DEMO_CHECKIN_KEY = "becoming-demo-checkin-status";
+export const DEMO_CHECKIN_KEY = "becoming-demo-checkin-status";
 const DEMO_SOCIAL_ACTIVITY_KEY = "becoming-demo-social-activity";
-const DEMO_HABIT_LOG_KEY = "becoming-demo-habit-log";
+export const DEMO_HABIT_LOG_KEY = "becoming-demo-habit-log";
+
+function writeCookie(name: string, value: string) {
+  if (typeof document === "undefined") {
+    return;
+  }
+
+  document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=86400; samesite=lax`;
+}
 
 export function writeDemoCheckinStatus(status: "checked_in" | "pending") {
   if (typeof window === "undefined") {
@@ -11,6 +19,7 @@ export function writeDemoCheckinStatus(status: "checked_in" | "pending") {
   }
 
   window.sessionStorage.setItem(DEMO_CHECKIN_KEY, status);
+  writeCookie(DEMO_CHECKIN_KEY, JSON.stringify({ status, date: toDateKey() }));
 }
 
 export function writeDemoHabitLog(entry: {
@@ -31,6 +40,7 @@ export function writeDemoHabitLog(entry: {
   };
 
   window.sessionStorage.setItem(DEMO_HABIT_LOG_KEY, JSON.stringify(payload));
+  writeCookie(DEMO_HABIT_LOG_KEY, JSON.stringify(payload));
 }
 
 export function readDemoHabitLog(): {

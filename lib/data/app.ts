@@ -1,4 +1,5 @@
 import { addDays, format } from "date-fns";
+import { cookies } from "next/headers";
 
 import {
   demoHabitLogs,
@@ -8,6 +9,7 @@ import {
   demoTribes,
   demoUserHabits,
 } from "@/lib/demo/data";
+import { DEMO_CHECKIN_KEY, DEMO_HABIT_LOG_KEY } from "@/lib/demo/overrides";
 import { mapTeamPageData } from "@/lib/team/teamMappers";
 import { calculateStreak, calculateUserWeeklyScore } from "@/lib/score";
 import { isForcedDemoMode } from "@/lib/supabase/env";
@@ -144,7 +146,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
 async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
   const supabase = await createServerSupabaseClient();
   if (!supabase) {
-    return getDemoBootstrap().teamPageData;
+    return (await getDemoBootstrap()).teamPageData;
   }
 
   const weekDates = getWeekDateKeys();
@@ -205,7 +207,7 @@ async function getTeamPageData(tribeId: string): Promise<TeamPageData | null> {
 async function getCircleDashboard(tribeId: string, currentUserId: string): Promise<CircleDashboard | null> {
   const supabase = await createServerSupabaseClient();
   if (!supabase) {
-    return getDemoBootstrap().circleDashboard;
+    return (await getDemoBootstrap()).circleDashboard;
   }
 
   const today = toDateKey();
@@ -387,11 +389,51 @@ function buildCircleActivity(
   ];
 }
 
-function getDemoBootstrap(): AppBootstrap {
-  const habits: TodayHabitItem[] = demoUserHabits.map((habit) => ({
+function readDemoCookieJson<T>(value?: string): T | null {
+  if (!value) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function getDemoBootstrap(): Promise<AppBootstrap> {
+  const cookieStore = await cookies();
+  const today = toDateKey();
+  const demoCheckinOverride = readDemoCookieJson<{ status: "checked_in" | "pending"; date: string }>(
+    cookieStore.get(DEMO_CHECKIN_KEY)?.value,
+  );
+  const demoHabitOverride = readDemoCookieJson<{
+    habitId: string;
+    completed: boolean;
+    progressValue: number | null;
+    logDate: string;
+  }>(cookieStore.get(DEMO_HABIT_LOG_KEY)?.value);
+
+  const habits: TodayHabitItem[] = demoUserHabits.map((habit) => {
+    const baseLog = demoHabitLogs.find((log) => log.user_habit_id === habit.id && log.log_date === today) ?? null;
+    const overriddenLog =
+      demoHabitOverride?.habitId === habit.id && demoHabitOverride.logDate === today
+        ? {
+            id: baseLog?.id ?? `demo-log-${habit.id}`,
+            user_id: habit.user_id,
+            user_habit_id: habit.id,
+            log_date: today,
+            completed: demoHabitOverride.completed,
+            progress_value: demoHabitOverride.progressValue,
+            notes: null,
+          }
+        : null;
+
+    return {
     ...habit,
-    log: demoHabitLogs.find((log) => log.user_habit_id === habit.id && log.log_date === toDateKey()) ?? null,
-  }));
+      log: overriddenLog ?? baseLog,
+    };
+  });
 
   const memberHabits: UserHabit[] = [
     ...demoUserHabits,
@@ -417,11 +459,14 @@ function getDemoBootstrap(): AppBootstrap {
     {
       user_id: demoProfile.id,
       full_name: "Mark",
-      status: "pending" as const,
+      status:
+        demoCheckinOverride?.date === today
+          ? demoCheckinOverride.status
+          : ("pending" as const),
       streak: calculateStreak([demoUserHabits[0]], demoHabitLogs),
       percentage: calculateUserWeeklyScore([demoUserHabits[0]], demoHabitLogs).percentage,
       isCurrentUser: true,
-      checkedInAt: null,
+      checkedInAt: demoCheckinOverride?.date === today && demoCheckinOverride.status === "checked_in" ? new Date().toISOString() : null,
       reactions: ["👏"],
       latestComment: "Quiet work still counts.",
     },
@@ -470,8 +515,12 @@ function getDemoBootstrap(): AppBootstrap {
       completionPercentage: demoMembers.filter((member) => member.status === "checked_in").length / demoMembers.length,
       circleStreak: 1,
       members: demoMembers,
-      currentUserStatus: "pending",
-      accountabilityMessage: "2 people have already checked in today.",
+      currentUserStatus:
+        demoCheckinOverride?.date === today ? demoCheckinOverride.status : "pending",
+      accountabilityMessage:
+        demoCheckinOverride?.date === today && demoCheckinOverride.status === "checked_in"
+          ? `${demoMembers.filter((member) => member.status === "checked_in").length} of ${demoMembers.length} are in today.`
+          : "2 people have already checked in today.",
       activity: [
         { id: "a1", text: "Ariana picked up 🎉 after checking in early." },
         { id: "a2", text: "Jay received a note: \"A short start is still a start.\""},
