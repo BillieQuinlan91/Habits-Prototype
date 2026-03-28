@@ -75,25 +75,22 @@ export function HabitJourneyPanel({
     );
   }
 
-  const maxTarget = 75;
+  const activeMilestone = journey.nextMilestone ?? journey.milestones[journey.milestones.length - 1] ?? null;
   const rings = [
     {
       milestone: journey.milestones[2],
       size: 240,
       stroke: 10,
-      activeTarget: 75,
     },
     {
       milestone: journey.milestones[1],
       size: 182,
       stroke: 10,
-      activeTarget: 30,
     },
     {
       milestone: journey.milestones[0],
       size: 126,
       stroke: 10,
-      activeTarget: 7,
     },
   ];
 
@@ -112,16 +109,17 @@ export function HabitJourneyPanel({
 
       <div className="flex justify-center py-2">
         <div className="relative flex h-[240px] w-[240px] items-center justify-center">
-          {rings.map(({ milestone, size, stroke, activeTarget }) => {
+          {rings.map(({ milestone, size, stroke }) => {
             if (!milestone) {
               return null;
             }
 
             const radius = (size - stroke) / 2;
             const circumference = 2 * Math.PI * radius;
+            const completionTarget = Math.max(1, milestone.requiredCompletedDays);
             const ratio = milestone.isUnlocked
               ? 1
-              : Math.min(journey.completedDays, activeTarget) / activeTarget;
+              : Math.min(journey.completedDays, completionTarget) / completionTarget;
             const dashOffset = circumference * (1 - ratio);
             const strokeClass = milestone.isUnlocked
               ? "stroke-success"
@@ -163,9 +161,12 @@ export function HabitJourneyPanel({
             );
           })}
           <div className="relative z-10 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-foreground/40">Current arc</p>
-            <p className="mt-2 font-display text-4xl font-normal tracking-tight">{Math.min(journey.elapsedDays, maxTarget)}</p>
-            <p className="text-sm text-foreground/56">of 75 days</p>
+            <p className="font-display text-4xl font-normal tracking-tight">
+              {Math.min(journey.completedDays, activeMilestone?.targetDays ?? 75)}
+            </p>
+            <p className="mt-1 text-sm text-foreground/56">
+              of {activeMilestone?.targetDays ?? 75} days
+            </p>
           </div>
         </div>
       </div>
