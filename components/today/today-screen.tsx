@@ -24,7 +24,7 @@ import {
 } from "@/lib/demo/overrides";
 import {
   deriveHabitJourney,
-  getAvailableHabitSlots,
+  getAvailableHabitSlotsFromUnlocks,
   getCurrentJourneyHabitId,
   getNewlyUnlockedMilestone,
   MAX_ACTIVE_HABITS,
@@ -273,8 +273,8 @@ export function TodayScreen({
   const visibleCircleDashboard = isDemo ? applyDemoCheckinOverride(circleDashboard) : circleDashboard;
   const isAcknowledging = acknowledgingHabitId !== null;
   const derivedHabitSlotLimit = useMemo(
-    () => Math.max(availableHabitSlots, getAvailableHabitSlots(journeys)),
-    [availableHabitSlots, journeys],
+    () => Math.max(availableHabitSlots, getAvailableHabitSlotsFromUnlocks(milestoneUnlocks)),
+    [availableHabitSlots, milestoneUnlocks],
   );
   const canAddAnotherHabit = orderedItems.length < derivedHabitSlotLimit && orderedItems.length < MAX_ACTIVE_HABITS;
   const nextHabitIndex = Math.min(orderedItems.length + 1, MAX_ACTIVE_HABITS);

@@ -17,7 +17,7 @@ function getProgressLabel(journey: HabitJourneyProgress) {
     return "Identity formed. You kept going long enough for it to become part of you.";
   }
 
-  return `${current.title}: ${journey.completedDays}/${current.targetDays} days`;
+  return `${current.title}: ${journey.completedDays}/${current.targetDays} days completed`;
 }
 
 export function HabitJourneyPanel({
@@ -103,7 +103,7 @@ export function HabitJourneyPanel({
         </div>
         <h3 className="mt-3 font-display text-2xl font-normal tracking-tight">{journey.habitName}</h3>
         <p className="mt-2 text-sm text-foreground/58">
-          {Math.round(journey.consistencyPercent * 100)}% consistency across {journey.elapsedDays} days.
+          {Math.round(journey.consistencyPercent * 100)}% consistency across {journey.trackedDays} tracked days.
         </p>
       </div>
 
@@ -223,7 +223,7 @@ export function HabitJourneyPanel({
                 <p className={cn("mt-3 text-sm", milestone.isUnlocked ? "text-success/75" : "text-foreground/52")}>
                   {milestone.isUnlocked
                     ? `Unlocked with ${Math.round(milestone.consistencyPercent * 100)}% consistency.`
-                    : `Needs ${milestone.requiredCompletedDays}/${milestone.targetDays} completed days at 80% consistency.`}
+                    : `Needs ${milestone.requiredCompletedDays}/${milestone.targetDays} completed days and 80% consistency across the full phase.`}
                 </p>
               </div>
             </div>

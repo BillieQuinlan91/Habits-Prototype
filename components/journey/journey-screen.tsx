@@ -46,7 +46,7 @@ export function JourneyScreen({
         <Card className="border-accent/20 bg-accent/6 py-4">
           <p className="text-xs uppercase tracking-[0.2em] text-accent">Preview mode</p>
           <p className="mt-2 text-sm text-foreground/62">
-            Showing the milestone state for {preview === "day7" ? "6/7" : preview === "day30" ? "24/30" : "60/75"}.
+            Showing the milestone state for {preview === "day7" ? "6/7 by day 7" : preview === "day30" ? "24/30 by day 30" : "60/75 by day 75"}.
           </p>
         </Card>
       ) : null}

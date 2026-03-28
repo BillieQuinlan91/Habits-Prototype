@@ -46,10 +46,10 @@ function getFinalMilestoneConfig() {
   return HABIT_JOURNEY_MILESTONES.find((milestone) => milestone.phase === "day_75") ?? HABIT_JOURNEY_MILESTONES[2];
 }
 
-export function hasUnlockedAdditionalHabitSlotForCounts(completedDays: number, elapsedDays: number, consistencyPercent: number) {
+export function hasUnlockedAdditionalHabitSlotForCounts(completedDays: number, trackedDays: number, consistencyPercent: number) {
   const finalMilestone = getFinalMilestoneConfig();
   return (
-    elapsedDays >= finalMilestone.targetDays &&
+    trackedDays >= finalMilestone.targetDays &&
     completedDays >= Math.ceil(finalMilestone.targetDays * finalMilestone.requiredConsistency) &&
     consistencyPercent >= finalMilestone.requiredConsistency
   );
@@ -58,13 +58,23 @@ export function hasUnlockedAdditionalHabitSlotForCounts(completedDays: number, e
 export function hasUnlockedAdditionalHabitSlot(journey: HabitJourneyProgress) {
   return hasUnlockedAdditionalHabitSlotForCounts(
     journey.completedDays,
-    journey.elapsedDays,
+    journey.trackedDays,
     journey.consistencyPercent,
   );
 }
 
 export function getAvailableHabitSlots(journeys: HabitJourneyProgress[]) {
   return Math.min(1 + journeys.filter((journey) => hasUnlockedAdditionalHabitSlot(journey)).length, MAX_ACTIVE_HABITS);
+}
+
+export function getAvailableHabitSlotsFromUnlocks(milestoneUnlocks: HabitMilestoneUnlock[]) {
+  const unlockedHabitIds = new Set(
+    milestoneUnlocks
+      .filter((entry) => entry.milestone_phase === "day_75")
+      .map((entry) => entry.user_habit_id),
+  );
+
+  return Math.min(1 + unlockedHabitIds.size, MAX_ACTIVE_HABITS);
 }
 
 export function deriveHabitJourney(
@@ -75,7 +85,7 @@ export function deriveHabitJourney(
 ): HabitJourneyProgress {
   const todayKey = toDateKey(now);
   const startDate = habit.commitment_start_date ?? todayKey;
-  const elapsedDays = Math.max(1, differenceInCalendarDays(now, parseISO(startDate)) + 1);
+  const trackedDays = Math.max(1, differenceInCalendarDays(now, parseISO(startDate)) + 1);
   const completedDates = new Set(
     logs
       .filter(
@@ -88,7 +98,7 @@ export function deriveHabitJourney(
       .map((log) => log.log_date),
   );
   const completedDays = completedDates.size;
-  const consistencyPercent = elapsedDays > 0 ? completedDays / elapsedDays : 0;
+  const consistencyPercent = trackedDays > 0 ? completedDays / trackedDays : 0;
 
   const milestones: HabitJourneyMilestone[] = HABIT_JOURNEY_MILESTONES.map((milestone) => {
     const unlocked = milestoneUnlocks.find(
@@ -103,6 +113,7 @@ export function deriveHabitJourney(
       unlockedAt: unlocked?.unlocked_at ?? null,
       isEligibleToday:
         !unlocked &&
+        trackedDays >= milestone.targetDays &&
         completedDays >= Math.ceil(milestone.targetDays * milestone.requiredConsistency) &&
         consistencyPercent >= milestone.requiredConsistency,
     };
@@ -111,10 +122,10 @@ export function deriveHabitJourney(
   return {
     habitId: habit.id,
     habitName: habit.name,
-    elapsedDays,
+    trackedDays,
     completedDays,
     consistencyPercent,
-    canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(completedDays, elapsedDays, consistencyPercent),
+    canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(completedDays, trackedDays, consistencyPercent),
     milestones,
     nextMilestone: milestones.find((milestone) => !milestone.isUnlocked) ?? null,
   };
@@ -131,12 +142,12 @@ export function getCurrentJourneyHabitId(journeys: HabitJourneyProgress[]) {
 
   const inProgressJourneys = journeys.filter((journey) => journey.nextMilestone);
   if (inProgressJourneys.length) {
-    return inProgressJourneys.sort((a, b) => a.elapsedDays - b.elapsedDays)[0].habitId;
+    return inProgressJourneys.sort((a, b) => a.trackedDays - b.trackedDays)[0].habitId;
   }
 
   return journeys
     .slice()
-    .sort((a, b) => b.elapsedDays - a.elapsedDays)[0]
+    .sort((a, b) => b.trackedDays - a.trackedDays)[0]
     ?.habitId ?? null;
 }
 
@@ -144,11 +155,11 @@ export type JourneyPreviewState = "day7" | "day30" | "day75";
 
 const JOURNEY_PREVIEW_MAP: Record<
   JourneyPreviewState,
-  { phase: HabitMilestonePhase; completedDays: number; elapsedDays: number }
+  { phase: HabitMilestonePhase; completedDays: number; trackedDays: number }
 > = {
-  day7: { phase: "day_7", completedDays: 6, elapsedDays: 6 },
-  day30: { phase: "day_30", completedDays: 24, elapsedDays: 24 },
-  day75: { phase: "day_75", completedDays: 60, elapsedDays: 60 },
+  day7: { phase: "day_7", completedDays: 6, trackedDays: 7 },
+  day30: { phase: "day_30", completedDays: 24, trackedDays: 30 },
+  day75: { phase: "day_75", completedDays: 60, trackedDays: 75 },
 };
 
 export function parseJourneyPreview(value?: string): JourneyPreviewState | null {
@@ -174,7 +185,7 @@ export function applyJourneyPreview(
 
   const selectedHabitId = currentJourneyHabitId ?? journeys[0]?.habitId ?? null;
   const config = JOURNEY_PREVIEW_MAP[preview];
-  const consistencyPercent = config.completedDays / config.elapsedDays;
+  const consistencyPercent = config.completedDays / config.trackedDays;
 
   const habitJourneys = journeys.map((journey) => {
     if (journey.habitId !== selectedHabitId) {
@@ -182,7 +193,8 @@ export function applyJourneyPreview(
     }
 
     const milestones = journey.milestones.map((milestone) => {
-      const targetReached = config.completedDays >= milestone.requiredCompletedDays;
+      const targetReached =
+        config.trackedDays >= milestone.targetDays && config.completedDays >= milestone.requiredCompletedDays;
       return {
         ...milestone,
         consistencyPercent,
@@ -195,11 +207,11 @@ export function applyJourneyPreview(
     return {
       ...journey,
       completedDays: config.completedDays,
-      elapsedDays: config.elapsedDays,
+      trackedDays: config.trackedDays,
       consistencyPercent,
       canAddSecondHabit: hasUnlockedAdditionalHabitSlotForCounts(
         config.completedDays,
-        config.elapsedDays,
+        config.trackedDays,
         consistencyPercent,
       ),
       milestones,

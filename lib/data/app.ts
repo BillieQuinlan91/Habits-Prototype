@@ -16,7 +16,11 @@ import {
   DEMO_MILESTONES_KEY,
   DEMO_REMOVED_HABITS_KEY,
 } from "@/lib/demo/overrides";
-import { deriveHabitJourney, getAvailableHabitSlots, getCurrentJourneyHabitId } from "@/lib/habit-journey";
+import {
+  deriveHabitJourney,
+  getAvailableHabitSlotsFromUnlocks,
+  getCurrentJourneyHabitId,
+} from "@/lib/habit-journey";
 import { mapTeamPageData } from "@/lib/team/teamMappers";
 import { calculateStreak, calculateUserWeeklyScore } from "@/lib/score";
 import { isForcedDemoMode } from "@/lib/supabase/env";
@@ -155,7 +159,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
     habitJourneys,
     currentJourneyHabitId,
     canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
-    availableHabitSlots: getAvailableHabitSlots(habitJourneys),
+    availableHabitSlots: getAvailableHabitSlotsFromUnlocks(habitMilestones),
     templates: (templatesResult.data ?? []) as HabitTemplate[],
     organizations: (organizationsResult.data ?? []) as { id: string; name: string }[],
     tribes: ((tribesResult.data ?? []) as Array<Tribe & { organization_name?: string }>).map((tribe) => ({
@@ -655,7 +659,7 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
     habitJourneys,
     currentJourneyHabitId,
     canAddSecondHabit: habitJourneys.some((journey) => journey.canAddSecondHabit),
-    availableHabitSlots: getAvailableHabitSlots(habitJourneys),
+    availableHabitSlots: getAvailableHabitSlotsFromUnlocks(demoMilestones),
     templates: demoHabitTemplates,
     organizations: demoOrganizations,
     tribes: demoTribes,
