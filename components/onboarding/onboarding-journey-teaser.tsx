@@ -2,14 +2,6 @@
 
 import { cn } from "@/lib/utils";
 
-const MEMBER_COLORS = [
-  "bg-accent",
-  "bg-accent/88",
-  "bg-accent/72",
-  "bg-accent/56",
-  "bg-accent/36",
-] as const;
-
 const STEP_ACTIVE_COUNTS = [1, 2, 3, 4, 4, 5] as const;
 
 export function OnboardingJourneyTeaser({
@@ -24,15 +16,15 @@ export function OnboardingJourneyTeaser({
     <div className="rounded-[28px] bg-surface/50 px-4 py-4">
       <div className="relative mx-auto max-w-[320px]">
         <div className="absolute left-6 right-6 top-1/2 h-px -translate-y-1/2 bg-foreground/10" />
-        <div className="absolute left-8 right-8 top-1/2 h-8 -translate-y-1/2 rounded-full bg-accent/8" />
+        <div className="absolute left-8 right-8 top-1/2 h-8 -translate-y-1/2 rounded-full bg-success/8" />
         <div className="relative flex items-center justify-between">
-          {MEMBER_COLORS.map((color, index) => {
+          {Array.from({ length: 5 }, (_, index) => {
             const isActive = index < activeCount;
-            const isPending = index === activeCount && activeCount < MEMBER_COLORS.length;
+            const isPending = index === activeCount && activeCount < 5;
 
             return (
               <div
-                key={`${color}-${index}`}
+                key={index}
                 className="flex flex-col items-center gap-2"
                 aria-hidden="true"
               >
@@ -41,11 +33,10 @@ export function OnboardingJourneyTeaser({
                     "flex items-center justify-center rounded-full border transition-all duration-500 ease-out",
                     index === 2 ? "h-14 w-14" : "h-11 w-11",
                     isActive
-                      ? "border-white/55 shadow-[0_10px_24px_rgba(108,140,245,0.18)]"
+                      ? "border-white/55 bg-success shadow-[0_10px_24px_rgba(111,175,143,0.2)]"
                       : isPending
-                        ? "border-accent/25 bg-card/95"
+                        ? "border-success/25 bg-card/95"
                         : "border-border/70 bg-card/78",
-                    isActive ? color : "",
                   )}
                 >
                   <div
@@ -55,7 +46,7 @@ export function OnboardingJourneyTeaser({
                       isActive
                         ? "bg-white/88"
                         : isPending
-                          ? "border border-accent/30 bg-accent/10"
+                          ? "border border-success/24 bg-success/10"
                           : "bg-foreground/14",
                     )}
                   />
@@ -64,7 +55,7 @@ export function OnboardingJourneyTeaser({
                   className={cn(
                     "h-1.5 rounded-full transition-all duration-500 ease-out",
                     index === 2 ? "w-8" : "w-6",
-                    isActive ? "bg-accent/42" : isPending ? "bg-accent/24" : "bg-foreground/12",
+                    isActive ? "bg-success/48" : isPending ? "bg-success/22" : "bg-foreground/12",
                   )}
                 />
               </div>
