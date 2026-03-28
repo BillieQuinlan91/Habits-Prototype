@@ -283,7 +283,7 @@ export function OnboardingFlow({
             <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">Step 2</p>
             <h2 className="font-display text-3xl font-normal tracking-tight">Choose one domino habit</h2>
             <p className="text-sm text-foreground/58">
-              Pick the one action that makes the rest of your days easier to live well.
+              Pick the one habit that puts everything else in motion.
             </p>
           </div>
 
