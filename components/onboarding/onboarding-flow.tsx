@@ -341,26 +341,27 @@ export function OnboardingFlow({
             </p>
           </div>
 
-          <div className="grid gap-2">
-            {MINIMUM_VERSION_PRESETS.map((preset) => {
-              const selected = state.minimumPreset === preset;
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() => setState((current) => ({ ...current, minimumPreset: preset }))}
-                  className={cn(
-                    "rounded-2xl border p-4 text-left transition",
-                    selected ? "border-accent bg-accent/8" : "border-border bg-surface/60",
-                  )}
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    <span className="font-medium">{preset}</span>
-                    {selected ? <Check className="h-4 w-4 text-accent" /> : null}
-                  </div>
-                </button>
-              );
-            })}
+          <div className="rounded-[28px] border border-border bg-surface/60 px-4 py-4">
+            <p className="text-sm font-medium text-foreground">What is your minimum version?</p>
+            <div className="mt-3">
+              <Select
+                className={cn(!state.minimumPreset && "text-foreground/38")}
+                value={state.minimumPreset}
+                onChange={(event) =>
+                  setState((current) => ({
+                    ...current,
+                    minimumPreset: event.target.value,
+                  }))
+                }
+              >
+                <option value="">Choose your minimum version</option>
+                {MINIMUM_VERSION_PRESETS.map((preset) => (
+                  <option key={preset} value={preset}>
+                    {preset}
+                  </option>
+                ))}
+              </Select>
+            </div>
           </div>
 
           {state.minimumPreset === "Custom" ? (
