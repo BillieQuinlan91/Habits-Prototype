@@ -3,19 +3,12 @@
 import { cn } from "@/lib/utils";
 
 const STEP_ACTIVE_COUNTS = [1, 2, 3, 4, 4, 5] as const;
-const ACTIVE_MEMBER_SHADES = [
-  "bg-[#5E9C7D]",
-  "bg-[#69A584]",
-  "bg-[#74AE8C]",
-  "bg-[#81B997]",
-  "bg-[#8CC39F]",
-] as const;
-const ACTIVE_MEMBER_SHADOWS = [
-  "shadow-[0_10px_24px_rgba(94,156,125,0.2)]",
-  "shadow-[0_10px_24px_rgba(105,165,132,0.2)]",
-  "shadow-[0_10px_24px_rgba(116,174,140,0.2)]",
-  "shadow-[0_10px_24px_rgba(129,185,151,0.2)]",
-  "shadow-[0_10px_24px_rgba(140,195,159,0.2)]",
+const ACTIVE_MEMBER_STYLES = [
+  { backgroundColor: "#5E9C7D", boxShadow: "0 10px 24px rgba(94,156,125,0.2)" },
+  { backgroundColor: "#6AA887", boxShadow: "0 10px 24px rgba(106,168,135,0.2)" },
+  { backgroundColor: "#78B493", boxShadow: "0 10px 24px rgba(120,180,147,0.2)" },
+  { backgroundColor: "#89C1A0", boxShadow: "0 10px 24px rgba(137,193,160,0.2)" },
+  { backgroundColor: "#9ACCAD", boxShadow: "0 10px 24px rgba(154,204,173,0.2)" },
 ] as const;
 
 export function OnboardingJourneyTeaser({
@@ -35,8 +28,7 @@ export function OnboardingJourneyTeaser({
           {Array.from({ length: 5 }, (_, index) => {
             const isActive = index < activeCount;
             const isPending = index === activeCount && activeCount < 5;
-            const activeShade = ACTIVE_MEMBER_SHADES[index];
-            const activeShadow = ACTIVE_MEMBER_SHADOWS[index];
+            const activeStyle = ACTIVE_MEMBER_STYLES[index];
 
             return (
               <div
@@ -49,11 +41,12 @@ export function OnboardingJourneyTeaser({
                     "flex items-center justify-center rounded-full border transition-all duration-500 ease-out",
                     index === 2 ? "h-14 w-14" : "h-11 w-11",
                     isActive
-                      ? cn("border-white/55", activeShade, activeShadow)
+                      ? "border-white/55"
                       : isPending
                         ? "border-success/25 bg-card/95"
                         : "border-border/70 bg-card/78",
                   )}
+                  style={isActive ? activeStyle : undefined}
                 >
                   <div
                     className={cn(
