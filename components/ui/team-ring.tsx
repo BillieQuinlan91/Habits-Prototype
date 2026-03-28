@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, CircleAlert, Clock3 } from "lucide-react";
+import { Check, CircleAlert, Clock3, Info } from "lucide-react";
+import { useState } from "react";
 
 import { getTeamMemberColor } from "@/lib/team/colors";
 import { CircleMemberStatus } from "@/lib/types";
@@ -30,13 +31,16 @@ export function TeamRing({
   title = "Team ring",
   showMembers = true,
   compact = false,
+  infoCopy,
 }: {
   members: CircleMemberStatus[];
   eyebrow?: string;
   title?: string;
   showMembers?: boolean;
   compact?: boolean;
+  infoCopy?: string;
 }) {
+  const [showInfo, setShowInfo] = useState(false);
   const size = compact ? 184 : 224;
   const strokeWidth = compact ? 14 : 18;
   const radius = (size - strokeWidth) / 2;
@@ -55,6 +59,23 @@ export function TeamRing({
           <p className="text-xs uppercase tracking-[0.24em] text-foreground/40">{eyebrow}</p>
           <h2 className="font-display text-3xl font-normal tracking-tight">{title}</h2>
         </div>
+        {infoCopy ? (
+          <div className="relative">
+            <button
+              type="button"
+              aria-label="About the team ring"
+              onClick={() => setShowInfo((current) => !current)}
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border/80 bg-card text-foreground/48 transition hover:text-foreground/72"
+            >
+              <Info className="h-4 w-4" />
+            </button>
+            {showInfo ? (
+              <div className="absolute right-0 top-10 z-10 w-64 rounded-2xl border border-border/80 bg-card p-3 text-sm leading-relaxed text-foreground/62 shadow-soft">
+                {infoCopy}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       <div className={cn("relative mx-auto flex w-full items-center justify-center", compact ? "max-w-[220px]" : "max-w-[260px]")}>

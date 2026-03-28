@@ -288,7 +288,7 @@ export function TodayScreen({
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-2 text-foreground/40">
               <Target className="h-4 w-4 text-accent" />
-              <p className="text-xs uppercase tracking-[0.2em]">Current commitment</p>
+              <p className="text-xs uppercase tracking-[0.2em]">Current habit</p>
             </div>
             <Badge className={cn(isCheckedIn && "border-success/20 bg-success/10 text-success")}>
               {isCheckedIn ? "Done today" : "Still to do"}
@@ -358,7 +358,7 @@ export function TodayScreen({
             </span>
           ) : null}
           <CheckCircle2 className="mr-2 h-4 w-4" />
-          {isAcknowledging ? "Checked in" : focusHabit.log?.completed ? "Checked in" : "Check in"}
+          {isAcknowledging ? "Checked in" : focusHabit.log?.completed ? "Checked in" : "Log habit"}
         </Button>
       </Card>
 
@@ -370,6 +370,7 @@ export function TodayScreen({
             title="Team ring"
             showMembers={false}
             compact
+            infoCopy="When all your members log their habit, your circle will complete. Each colour represents a different member. Let's get to 100% together."
           />
         </Card>
       ) : null}
