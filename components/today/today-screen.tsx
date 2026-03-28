@@ -3,7 +3,7 @@
 import { format } from "date-fns";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CircleUserRound, Target } from "lucide-react";
+import { CheckCircle2, CircleUserRound, MessageCircleHeart, Target } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,8 +19,9 @@ import {
   writeDemoSocialActivity,
 } from "@/lib/demo/overrides";
 import { createClient } from "@/lib/supabase/client";
+import { hasSeenSupportDigest, markSupportDigestSeen } from "@/lib/support";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
-import { CircleDashboard, PostCheckInPopupState, Profile, TodayHabitItem } from "@/lib/types";
+import { CircleDashboard, PostCheckInPopupState, Profile, ReceivedSupportDigest, TodayHabitItem } from "@/lib/types";
 import { cn, formatIdentityLabel, getWeekWindow } from "@/lib/utils";
 
 type CheckInAcknowledgmentState = "idle" | "acknowledging";
@@ -45,11 +46,13 @@ export function TodayScreen({
   profile,
   habits,
   circleDashboard,
+  receivedSupportDigest,
   isDemo = false,
 }: {
   profile: Profile | null;
   habits: TodayHabitItem[];
   circleDashboard: CircleDashboard | null;
+  receivedSupportDigest: ReceivedSupportDigest | null;
   isDemo?: boolean;
 }) {
   const router = useRouter();
@@ -60,6 +63,7 @@ export function TodayScreen({
   const [selectedEmoji, setSelectedEmoji] = useState<string | null>(null);
   const [sharedMessage, setSharedMessage] = useState("");
   const [acknowledgmentState, setAcknowledgmentState] = useState<CheckInAcknowledgmentState>("idle");
+  const [showSupportDigest, setShowSupportDigest] = useState(false);
   const popupTimeoutRef = useRef<number | null>(null);
 
   const focusHabit = useMemo(
@@ -76,6 +80,15 @@ export function TodayScreen({
   useEffect(() => {
     setItems(isDemo ? applyDemoHabitOverride(habits) : habits);
   }, [habits, isDemo]);
+
+  useEffect(() => {
+    if (!receivedSupportDigest?.hasNewSupport) {
+      setShowSupportDigest(false);
+      return;
+    }
+
+    setShowSupportDigest(!hasSeenSupportDigest(receivedSupportDigest));
+  }, [receivedSupportDigest]);
 
   useEffect(() => {
     return () => {
@@ -240,6 +253,47 @@ export function TodayScreen({
           </p>
         </Card>
       </div>
+
+      {receivedSupportDigest && showSupportDigest ? (
+        <Card className="space-y-3 bg-surface/70">
+          <div className="flex items-center gap-2 text-foreground/40">
+            <MessageCircleHeart className="h-4 w-4 text-accent" />
+            <p className="text-xs uppercase tracking-[0.2em]">From your team</p>
+          </div>
+          <div className="space-y-2">
+            <p className="font-display text-2xl font-normal tracking-tight">A little encouragement came in.</p>
+            {receivedSupportDigest.latestComment ? (
+              <p className="text-sm text-foreground/68">“{receivedSupportDigest.latestComment}”</p>
+            ) : null}
+            {receivedSupportDigest.reactionSummary ? (
+              <p className="text-sm text-foreground/52">{receivedSupportDigest.reactionSummary}</p>
+            ) : null}
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <button
+              type="button"
+              className="text-sm font-medium text-accent"
+              onClick={() => {
+                markSupportDigestSeen(receivedSupportDigest);
+                setShowSupportDigest(false);
+                router.push("/tribe");
+              }}
+            >
+              See team
+            </button>
+            <button
+              type="button"
+              className="text-sm text-foreground/44"
+              onClick={() => {
+                markSupportDigestSeen(receivedSupportDigest);
+                setShowSupportDigest(false);
+              }}
+            >
+              Noted
+            </button>
+          </div>
+        </Card>
+      ) : null}
 
       <Card
         className={cn(

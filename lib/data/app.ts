@@ -22,6 +22,7 @@ import {
   NotificationPreference,
   OrganizationRanking,
   Profile,
+  ReceivedSupportDigest,
   TeamPageData,
   TodayHabitItem,
   Tribe,
@@ -38,6 +39,7 @@ type AppBootstrap = {
   tribes: Tribe[];
   circleDashboard: CircleDashboard | null;
   teamPageData: TeamPageData | null;
+  receivedSupportDigest: ReceivedSupportDigest | null;
   organizationRankings: OrganizationRanking[];
   integrationInterests: IntegrationInterest[];
   notificationPreferences: NotificationPreference | null;
@@ -69,6 +71,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
       tribes: [],
       circleDashboard: null,
       teamPageData: null,
+      receivedSupportDigest: null,
       organizationRankings: [],
       integrationInterests: [],
       notificationPreferences: null,
@@ -120,6 +123,7 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
   const profile = (profileResult.data as Profile | null) ?? null;
   const circleDashboard = profile?.tribe_id ? await getCircleDashboard(profile.tribe_id, user.id) : null;
   const teamPageData = profile?.tribe_id ? await getTeamPageData(profile.tribe_id) : null;
+  const receivedSupportDigest = profile?.tribe_id ? await getReceivedSupportDigest(profile.tribe_id, user.id) : null;
 
   return {
     profile,
@@ -136,10 +140,80 @@ export async function getAppBootstrap(): Promise<AppBootstrap> {
     })),
     circleDashboard,
     teamPageData,
+    receivedSupportDigest,
     organizationRankings: [],
     integrationInterests: (integrationResult.data ?? []) as IntegrationInterest[],
     notificationPreferences: (notificationResult.data as NotificationPreference | null) ?? null,
     isDemo: false,
+  };
+}
+
+async function getReceivedSupportDigest(
+  tribeId: string,
+  currentUserId: string,
+): Promise<ReceivedSupportDigest | null> {
+  const supabase = await createServerSupabaseClient();
+  if (!supabase) {
+    return (await getDemoBootstrap()).receivedSupportDigest;
+  }
+
+  const { start } = getWeekWindow();
+  const weekStart = format(start, "yyyy-MM-dd");
+
+  const [{ data: memberRows }, { data: reactions }, { data: comments }] = await Promise.all([
+    supabase.from("tribe_members").select("user_id").eq("tribe_id", tribeId),
+    supabase
+      .from("member_reactions")
+      .select("from_user_id, emoji, created_at")
+      .eq("to_user_id", currentUserId)
+      .eq("week_start_date", weekStart)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("member_comments")
+      .select("from_user_id, message, created_at")
+      .eq("to_user_id", currentUserId)
+      .eq("week_start_date", weekStart)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const tribeUserIds = (memberRows ?? []).map((row) => row.user_id);
+  const senderIds = Array.from(
+    new Set([
+      ...(reactions ?? []).map((item) => item.from_user_id),
+      ...(comments ?? []).map((item) => item.from_user_id),
+    ]),
+  ).filter((id) => id !== currentUserId && tribeUserIds.includes(id));
+
+  if (!senderIds.length) {
+    return null;
+  }
+
+  const { data: senderProfiles } = await supabase.from("profiles").select("id, full_name").in("id", senderIds);
+  const senderNames = senderIds
+    .map((id) => senderProfiles?.find((profile) => profile.id === id)?.full_name ?? "A teammate")
+    .slice(0, 3);
+
+  const latestComment = comments?.[0]?.message?.trim() || null;
+  const emojis = Array.from(new Set((reactions ?? []).map((item) => item.emoji))).join(" ");
+  const newestReactionAt = reactions?.[0]?.created_at ?? null;
+  const newestCommentAt = comments?.[0]?.created_at ?? null;
+  const receivedAt = newestCommentAt && newestReactionAt
+    ? newestCommentAt > newestReactionAt
+      ? newestCommentAt
+      : newestReactionAt
+    : newestCommentAt ?? newestReactionAt;
+
+  if (!receivedAt) {
+    return null;
+  }
+
+  return {
+    hasNewSupport: true,
+    reactionSummary: emojis ? `${summarizeSenderNames(senderNames)} sent ${emojis}` : null,
+    latestComment,
+    senders: senderNames,
+    receivedAt,
+    unseenCount: (comments?.length ?? 0) + (reactions?.length ?? 0),
   };
 }
 
@@ -389,6 +463,22 @@ function buildCircleActivity(
   ];
 }
 
+function summarizeSenderNames(senders: string[]) {
+  if (senders.length === 0) {
+    return "Your team";
+  }
+
+  if (senders.length === 1) {
+    return senders[0];
+  }
+
+  if (senders.length === 2) {
+    return `${senders[0]} and ${senders[1]}`;
+  }
+
+  return `${senders[0]}, ${senders[1]} + ${senders.length - 2} others`;
+}
+
 function readDemoCookieJson<T>(value?: string): T | null {
   if (!value) {
     return null;
@@ -529,6 +619,14 @@ async function getDemoBootstrap(): Promise<AppBootstrap> {
         { id: "a1", text: "Ariana picked up 🎉 after checking in early." },
         { id: "a2", text: "Jay received a note: \"A short start is still a start.\""},
       ],
+    },
+    receivedSupportDigest: {
+      hasNewSupport: true,
+      reactionSummary: "Ariana and Jay sent 💪 👏",
+      latestComment: "A short start is still a start.",
+      senders: ["Ariana", "Jay"],
+      receivedAt: `${today}T09:00:00.000Z`,
+      unseenCount: 3,
     },
     teamPageData: mapTeamPageData({
       teamId: demoTribes[0].id,

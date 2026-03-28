@@ -168,6 +168,15 @@ export type PostCheckInPopupState =
   | { kind: "celebration" }
   | { kind: "sending"; teammates: CircleMemberStatus[] };
 
+export type ReceivedSupportDigest = {
+  hasNewSupport: boolean;
+  reactionSummary: string | null;
+  latestComment: string | null;
+  senders: string[];
+  receivedAt: string;
+  unseenCount: number;
+};
+
 export type BulkEncouragementPayload = {
   toUserIds: string[];
   emoji: string | null;
